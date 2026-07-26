@@ -5,6 +5,7 @@ import com.app.APP.model.dto.request.PointOfInterestRequest;
 import com.app.APP.model.dto.response.PointOfInterestResponse;
 import com.app.APP.model.enums.PointType;
 import com.app.APP.service.PointOfInterestService;
+import com.app.APP.service.PointOfInterestStatusService;
 import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,11 @@ class PointOfInterestControllerTest {
 
     @MockitoBean
     private PointOfInterestService pointOfInterestService;
+
+    /** O controller passou a receber tambem o service de status pessoal do ponto
+     *  (NO_RADAR/NA_MIRA/CONQUISTADO + objetivo); sem o mock o contexto nao sobe. */
+    @MockitoBean
+    private PointOfInterestStatusService pointOfInterestStatusService;
 
     private PointOfInterestResponse responseStub() {
         return PointOfInterestResponse.builder()

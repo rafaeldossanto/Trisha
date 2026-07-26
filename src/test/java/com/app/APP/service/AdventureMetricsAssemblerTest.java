@@ -38,7 +38,9 @@ class AdventureMetricsAssemblerTest {
         Adventure adventure = AdventureStub.anAdventure().build();
         when(participantRepository.countByAdventureId(ADV_ID)).thenReturn(1L);
         when(pathRepository.findTimespansByAdventureIds(List.of(ADV_ID)))
-                .thenReturn(List.of(new Object[]{ADV_ID, LocalDateTime.now(), null}));
+                // List.<Object[]>of: com um unico array, o varargs inferiria
+                // List<Object> de 3 elementos em vez de uma linha de projecao.
+                .thenReturn(List.<Object[]>of(new Object[]{ADV_ID, LocalDateTime.now(), null}));
 
         AdventureResponse response = assembler.build(adventure);
 
@@ -54,7 +56,7 @@ class AdventureMetricsAssemblerTest {
         LocalDateTime end = LocalDateTime.of(2026, 7, 21, 14, 30);
         when(participantRepository.countByAdventureId(ADV_ID)).thenReturn(3L);
         when(pathRepository.findTimespansByAdventureIds(List.of(ADV_ID)))
-                .thenReturn(List.of(new Object[]{ADV_ID, start, end}));
+                .thenReturn(List.<Object[]>of(new Object[]{ADV_ID, start, end}));
 
         AdventureResponse response = assembler.build(adventure);
 
@@ -69,7 +71,7 @@ class AdventureMetricsAssemblerTest {
         Adventure a2 = AdventureStub.anAdventure().id("a2").build();
         Page<Adventure> page = new PageImpl<>(List.of(a1, a2));
         when(participantRepository.countByAdventureIds(List.of("a1", "a2")))
-                .thenReturn(List.of(new Object[]{"a1", 2L}));
+                .thenReturn(List.<Object[]>of(new Object[]{"a1", 2L}));
         when(pathRepository.findTimespansByAdventureIds(List.of("a1", "a2")))
                 .thenReturn(List.of());
 
