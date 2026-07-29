@@ -3,7 +3,9 @@ spring:
     name: APP
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/trilha_app
+    # Banco COMPARTILHADO com o servico Cadastro, que e o dono da tabela
+    # 'usuario' — aqui ela e lida como view read-only (entidade User @Immutable).
+    url: jdbc:postgresql://localhost:5432/trisha
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -22,6 +24,11 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    # Historico proprio: o banco e compartilhado com o Cadastro e as duas
+    # sequencias de versao se cruzam (Cadastro V1-V5, APP V2 e V4-V8). Na tabela
+    # padrao 'flyway_schema_history' o segundo servico a subir encontraria uma
+    # V2 aplicada com checksum diferente do dele e abortaria o boot.
+    table: flyway_schema_history_app
 
   # Resource server: valida o Bearer da app pela chave publica do Cadastro (JWKS).
   security:

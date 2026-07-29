@@ -4,14 +4,32 @@
 -- bancos que o Hibernate ja criou; as migrations anteriores viram no-op em
 -- banco novo (guardadas por to_regclass) porque aqui ja nasce tudo atualizado.
 
--- Copia local (imutavel) do usuario do Cadastro: o Hibernate valida a entidade
--- User mesmo sendo read-only, entao a tabela precisa existir.
+-- Tabela 'usuario': o DONO e o servico Cadastro, que escreve nela. Aqui ela e
+-- lida como view read-only (entidade User @Immutable, que mapeia so id, nome,
+-- email e codigo_usuario) — o Hibernate valida a entidade mesmo read-only, entao
+-- a tabela precisa existir quando o APP sobe.
+--
+-- A definicao abaixo e IDENTICA a do Cadastro (V4__schema_base.sql) DE PROPOSITO:
+-- os dois servicos compartilham o banco 'trisha' e qualquer um pode subir
+-- primeiro num banco vazio. Se o APP criasse aqui uma versao reduzida, o
+-- ddl-auto=validate do Cadastro quebraria por falta de senha/status. Com as duas
+-- definicoes iguais e o IF NOT EXISTS, a ordem de boot deixa de importar.
+-- Colunas novas continuam sendo responsabilidade do Cadastro (via ALTER nas
+-- migrations dele, que rodam depois).
 CREATE TABLE IF NOT EXISTS usuario (
-    id             VARCHAR(255) PRIMARY KEY,
-    nome           VARCHAR(255),
-    email          VARCHAR(255),
-    codigo_usuario VARCHAR(255)
+    id               VARCHAR(255) PRIMARY KEY,
+    nome             VARCHAR(255),
+    email            VARCHAR(255),
+    senha            VARCHAR(255),
+    codigo_usuario   VARCHAR(255),
+    status           SMALLINT,
+    data_criacao     TIMESTAMP,
+    data_atualizacao TIMESTAMP,
+    trace_id         VARCHAR(255),
+    CONSTRAINT uk_usuario_codigo UNIQUE (codigo_usuario)
 );
+
+CREATE INDEX IF NOT EXISTS idx_usuario_email ON usuario (email);
 
 CREATE TABLE IF NOT EXISTS regioes (
     id            VARCHAR(255) PRIMARY KEY,
