@@ -1,7 +1,7 @@
 ---
 tags: [front, flutter, mobile]
 repo: frontMobile
-atualizado: 2026-07-25
+atualizado: 2026-07-30
 ---
 
 # App Mobile
@@ -56,6 +56,22 @@ um carrossel de cards embaixo que centraliza o mapa na trilha ao deslizar.
 As trilhas da comunidade chegam por **bbox** com debounce de 700ms e zoom mínimo 10.
 Marcadores "AO VIVO" abrem a tela de acompanhamento.
 
+## Entrada no app
+
+A tela de login usa as formas de verdade — ver [[Autenticação e Identidade]]:
+
+| Ação | Endpoint do BFF |
+|---|---|
+| Entrar | `POST /bff/auth/login` (e-mail + senha) |
+| Criar conta (`/cadastro`) | `POST /bff/usuarios` → conta **PENDENTE** até confirmar o e-mail |
+| Reenviar confirmação | `POST /bff/usuarios/{id}/reenviar-email` |
+| Google / Apple | `POST /bff/usuarios/login-social` (`provedor` + `idToken`) |
+
+O ID token do provedor é obtido no aparelho (`google_sign_in`,
+`sign_in_with_apple`) e trocado pela sessão no backend. O botão da Apple só
+aparece no iOS — que ainda não é uma plataforma gerada aqui. O `dev-login`
+sobrou como atalho, visível apenas em build de debug (`kDebugMode`).
+
 ## Configuração
 
 `.env` (carregado por `flutter_dotenv`, declarado como asset):
@@ -64,12 +80,16 @@ Marcadores "AO VIVO" abrem a tela de acompanhamento.
 API_BASE_URL=http://10.0.2.2:8090     # 10.0.2.2 = localhost do host, no emulador
 MIDIA_BASE_URL=http://10.0.2.2:8083
 LOC_WS_URL=http://10.0.2.2:8082/ws-localizacao
+GOOGLE_SERVER_CLIENT_ID=              # Web client ID do Google Cloud
 ```
+
+`GOOGLE_SERVER_CLIENT_ID` é o **Web** client ID (não o do Android) e precisa ser
+o mesmo valor do `GOOGLE_CLIENT_ID` do [[Serviço Cadastro]]: é ele que vira o
+`aud` do ID token que o backend valida. Vazio, o botão avisa em vez de falhar mudo.
 
 ## Lacunas conhecidas
 
-- Sem telas de cadastro, confirmação de e-mail ou recuperação de senha — entra por
-  `dev-login` (ver [[Autenticação e Identidade]])
+- Sem recuperação de senha (não existe nem no backend)
 - Sem tela de participantes (o *kick* existe só na API)
 - Sem trilhas offline, gamificação ou SOS (roadmap)
 

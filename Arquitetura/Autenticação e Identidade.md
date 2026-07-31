@@ -1,6 +1,6 @@
 ---
 tags: [arquitetura, seguranca]
-atualizado: 2026-07-25
+atualizado: 2026-07-30
 ---
 
 # Autenticação e Identidade
@@ -44,10 +44,13 @@ consulta. Ver [[Visibilidade e Controle de Acesso]] e [[Segurança]].
 | Social (Google/Apple) | `POST /auth/social` | Valida o ID token pelo JWKS do provedor |
 | Dev-login | `POST /auth/dev-login` | Só no profile `dev`; cria/reusa conta sem senha |
 
-> [!note] O front ainda entra por dev-login
-> Nem [[App Mobile]] nem [[App Web]] têm telas de cadastro, confirmação de e-mail ou
-> recuperação de senha. O backend suporta tudo isso; o front, não. É a maior lacuna
-> aberta hoje.
+> [!note] O App Web ainda entra por dev-login
+> O [[App Mobile]] passou a usar as três formas em 2026-07-30: login por senha,
+> criação de conta e login social (Google; Apple só no iOS, que ainda não existe
+> como plataforma no projeto). O dev-login continua lá, mas só em build de debug.
+> O [[App Web]] segue sem telas de cadastro e entrando por dev-login.
+>
+> Recuperação de senha não existe em lugar nenhum — nem backend, nem front.
 
 ## Cadastro por e-mail
 
