@@ -1,6 +1,6 @@
 ---
 tags: [decisao]
-atualizado: 2026-07-25
+atualizado: 2026-08-01
 ---
 
 # Decisões Deliberadas
@@ -29,6 +29,13 @@ Decisão de 25/07/2026: a V1 web sai primeiro, sem arrastar o [[App Mobile]]. O
 Comunicação entre serviços é HTTP síncrono. O acoplamento é assumido e controlado
 com circuit breaker. A única assincronia é o tempo real (MQTT + Redis). Ver
 [[Comunicação entre Serviços]].
+
+### Os 5 serviços continuam 5
+Avaliado em 01/08/2026 fundir Cadastro+APP e Localização+Mídia para baratear a VPS.
+**Rejeitado**: economiza só o overhead fixo de JVM, não muda o tier da máquina, e
+fundir Cadastro+APP faria todo deploy do feed derrubar o emissor de JWT. Pelo mesmo
+motivo o [[BFF]] continua em Java — se a RAM apertar, a saída é GraalVM native image,
+não trocar de linguagem. Ver [[Escalabilidade]] e [[Remoção do Camunda]].
 
 ### Sem cache na descoberta por bbox
 A área muda a cada gesto de mapa **e** por usuário. O *hit rate* seria quase zero e
@@ -85,3 +92,4 @@ teria custo alto e risco desnecessário. Ver [[Identidade Visual]].
 | `COUNT(*) + 1` para `codigoUsuario` | — | **sequence atômica** |
 | Wrapper de exceção no MinIO | 21/07/2026 | propaga o erro real ([[Serviço Mídia]]) |
 | `fontFamily: 'serif'` no wordmark | 25/07/2026 | **Yellowtail** embarcada |
+| Camunda 8 / Zeebe no cadastro | 01/08/2026 | máquina de estado no banco ([[Remoção do Camunda]]) |

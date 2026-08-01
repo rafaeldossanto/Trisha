@@ -22,8 +22,8 @@ diretamente — só com o [[BFF]].
       :8080         :8081         :8082          :8083
         │              │            │              │
     Postgres      Postgres      Postgres       Postgres
-    + Zeebe                     + PostGIS      + MinIO
-    + Redis                     + Redis
+    + Redis                     + PostGIS      + MinIO
+                                + Redis
                                 + Mosquitto
 ```
 
@@ -70,8 +70,11 @@ O [[BFF]] não é um proxy burro. Ele:
 - **Redis** (cache do BFF, lockout de login, Pub/Sub do tempo real)
 - **MinIO** (S3-compatível, binários)
 - **Mosquitto** (MQTT, ingestão GPS)
-- **Camunda 8 / Zeebe** (orquestra o cadastro — ver [[Serviço Cadastro]])
 - **Flutter** nos dois fronts
+
+> [!note] Camunda 8 / Zeebe saiu em 01/08/2026
+> Orquestrava o cadastro até então. O fluxo virou máquina de estado no banco — ver
+> [[Remoção do Camunda]].
 
 Detalhes de infraestrutura em [[Ambientes]]; limites de crescimento em
 [[Escalabilidade]].

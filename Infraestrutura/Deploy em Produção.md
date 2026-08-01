@@ -24,7 +24,7 @@ Duas redes Docker:
    ┌────────┼────────┬─────────┬────────┐
    ▼        ▼        ▼         ▼        ▼
 cadastro   app      loc      midia    postgres
-                                      redis, minio, zeebe
+                                      redis, minio
 ```
 
 - Serviços internos **não publicam porta**. O mundo externo não os alcança, então o
@@ -40,16 +40,14 @@ cadastro   app      loc      midia    postgres
 | postgres | `postgres:18` | não |
 | redis | `redis:8-alpine` | não |
 | minio | `minio/minio` | não |
-| **zeebe** | `camunda/zeebe:8.5.6` | não |
 | mosquitto | `eclipse-mosquitto:2` | **1883** |
 | cadastro, app, loc, midia | `ghcr.io/rafaeldossanto/trilha-*` | não |
 | **bff** | `ghcr.io/rafaeldossanto/trilha-bff` | **8090** |
 
-> [!important] O Zeebe entrou em 25/07/2026
-> Antes ele simplesmente não existia no compose, e o [[Serviço Cadastro]] apontava
-> para `localhost:26500` fixo — dentro do container, `localhost` é o próprio
-> Cadastro. Resultado: **ninguém conseguiria se cadastrar em produção**. Hoje o
-> cadastro depende do Zeebe com `condition: service_healthy`.
+> [!note] O Zeebe saiu em 01/08/2026
+> Ele entrou no compose em 25/07 e saiu de vez uma semana depois, junto com o
+> Camunda. O cadastro não depende mais de broker externo — ver
+> [[Remoção do Camunda]]. Isso derruba ~1,2 GB do requisito de memória.
 
 ## Checklist de ativação
 

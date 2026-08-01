@@ -1,6 +1,6 @@
 ---
 tags: [historico]
-atualizado: 2026-07-25
+atualizado: 2026-08-01
 ---
 
 # Linha do Tempo
@@ -97,6 +97,24 @@ desatualizados. Como o job de publicação de imagem depende do de teste, é pro
 que nenhuma imagem válida tenha ido ao ghcr.io. Ver [[CI e CD]].
 
 Os cinco serviços passaram a ter `./gradlew test` verde.
+
+## 01/08 — o Camunda sai
+
+Uma provocação sobre custo ("microserviço numa VPS não sai mais caro?") virou
+auditoria de dimensionamento. A consolidação de serviços que a pergunta sugeria foi
+**rejeitada** (economizaria ~R$ 8/mês e acoplaria o emissor de JWT ao feed), mas a
+análise encontrou outra coisa: o Zeebe consumia ~1,2 GB para orquestrar **dois
+booleanos e um timeout**, era ponto único de falha do cadastro e guardava estado de
+usuário fora do Postgres.
+
+O Camunda saiu inteiro. O fluxo virou `tryActivate()` + `@Scheduled` + evento
+assíncrono para o e-mail. A ativação passou a ser um `UPDATE` condicional — some a
+janela em que o usuário confirmava o e-mail e ainda não estava `ATIVO`. Ver
+[[Remoção do Camunda]].
+
+Achado no caminho: filtrar a expiração por `createdAt` teria matado todo recadastro
+de conta inativa em 60 segundos, porque o reaproveitamento preserva a data de
+criação. O corte usa `updatedAt`.
 
 ## Pendências abertas
 

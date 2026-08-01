@@ -16,8 +16,8 @@ cd trilha-infra
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-Sobe **Redis** (6379), **MinIO** (9000 + console 9001), **Mosquitto** (1883,
-anônimo) e **Zeebe** (26500).
+Sobe **Redis** (6379), **MinIO** (9000 + console 9001) e **Mosquitto** (1883,
+anônimo).
 
 > [!important] O Postgres é NATIVO, fora do compose
 > Postgres 18 instalado na máquina, na porta 5432, com os bancos
@@ -48,7 +48,6 @@ Rodam fora do Docker, na IDE ou por `./gradlew bootRun`, com
 | CORS | `localhost:*` | domínio real via `CORS_ALLOWED_ORIGINS` |
 | Swagger | ligado | desligado |
 | Portas | todas expostas | só BFF (8090) e MQTT (1883) |
-| Zeebe | compose de dev | serviço no compose de prod |
 
 ## Variáveis de ambiente principais
 
@@ -58,7 +57,8 @@ Rodam fora do Docker, na IDE ou por `./gradlew bootRun`, com
 | `DDL_AUTO` | todos com banco | `update` ou `validate` |
 | `JWKS_URI` | APP, loc, mídia, BFF | validar token |
 | `JWT_RSA_PRIVATE_KEY_PATH` | Cadastro | assinar token |
-| `ZEEBE_GATEWAY_ADDRESS` | Cadastro | processo de cadastro |
+| `CADASTRO_EXPIRACAO_MINUTOS` | Cadastro | prazo de confirmação (default 10) |
+| `CADASTRO_INTERVALO_LIMPEZA_MS` | Cadastro | intervalo da varredura (default 60000) |
 | `REDIS_HOST` | Cadastro, loc, BFF | cache, lockout, pub/sub |
 | `MINIO_URL` / `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | mídia | storage |
 | `MQTT_BROKER_URL` / `MQTT_USERNAME` / `MQTT_PASSWORD` | loc | ingestão GPS |

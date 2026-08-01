@@ -3,7 +3,7 @@ tags: [servico, backend]
 porta: 8080
 banco: trilha_cadastro
 repo: Cadastro
-atualizado: 2026-07-25
+atualizado: 2026-08-01
 ---
 
 # Serviço Cadastro
@@ -18,7 +18,7 @@ token — ver [[Autenticação e Identidade]].
 ### Conta
 | Método | Rota | Observação |
 |---|---|---|
-| POST | `/usuario` | **Inicia o processo Camunda**, não é insert simples |
+| POST | `/usuario` | cria em `PENDENTE` e dispara o e-mail de confirmação (assíncrono) |
 | GET | `/usuario/{id}` | exige `sub == id` (anti-IDOR) |
 | PUT | `/usuario/{id}` | idem; não altera senha |
 | DELETE | `/usuario/{id}` | idem |
@@ -51,43 +51,55 @@ token — ver [[Autenticação e Identidade]].
 > nessas colunas. Mudar a ordem dos valores do enum corromperia os dados
 > existentes. Ver [[Banco de Dados e Migrations]].
 
-## O processo Camunda (Zeebe)
+## O fluxo de cadastro
 
-`POST /usuario` cria a conta **e** inicia o processo `cadastro-usuario`:
+Até 01/08/2026 isso era um processo BPMN no Camunda 8 / Zeebe. Hoje é resolvido no
+próprio banco — o porquê está em [[Remoção do Camunda]].
 
 ```
-início ──► envio-email ──► [espera] email-confirmado
-                                 │
-                                 ├─► termos-aceitos ──► liberacao-conta ──► fim
-                                 │
-                                 └─► (timer ~10min) ──► delecao-dados
+POST /usuario          ──► grava PENDENTE, publica evento ──► @Async manda e-mail
+GET  /confirmar-email  ──► marca CONFIRMADO + tryActivate()   ┐ mesma transação
+POST /aceitar-termos   ──► grava o aceite  + tryActivate()    ┘
+@Scheduled (1 min)     ──► desativa PENDENTE vencido
 ```
 
-- Workers: `envio-email`, `liberacao-conta`, `delecao-dados`
-- Mensagens correlacionadas por `usuarioId`
-- O deploy do BPMN é feito por `@Deployment` na classe `Application`
+`tryActivate(userId)` ativa **só** quando as duas etapas estão cumpridas. As etapas
+correm em qualquer ordem; a última a chegar é quem ativa.
 
-> [!danger] Sem Zeebe, ninguém se cadastra
-> Se o `RegistrationService` não conseguir iniciar o processo, ele **apaga a conta
-> recém-criada** e lança exceção — de propósito, para liberar o e-mail para nova
-> tentativa. Portanto o Zeebe é dependência **dura**. O endereço vem de
-> `ZEEBE_GATEWAY_ADDRESS`; em [[Ambientes]] há como subir o broker.
+> [!important] A ativação é um `UPDATE` condicional
+> `UserRepository.activateIfPending` roda
+> `UPDATE ... WHERE id = ? AND status = PENDENTE` e devolve as linhas afetadas.
+> Confirmar e-mail e aceitar termos podem chegar **simultâneos** — o link do e-mail
+> costuma ser aberto em outro dispositivo, então ordenar as telas no front não
+> impede a corrida. Quem arbitra é o banco: a segunda chamada afeta zero linhas.
+
+> [!note] O corte de expiração usa `updatedAt`, não `createdAt`
+> Uma conta reaproveitada (ver abaixo) volta a `PENDENTE` mantendo a data de criação
+> original. Por `createdAt`, todo recadastro seria expirado no primeiro ciclo.
+
+Peças: `ConfirmationService` (ativação) · `RegistrationCleanupJob` (prazo) ·
+`UserRegisteredListener` + `ConfirmationMailer` (e-mail com `@Retryable`).
+
+Configuração: `app.cadastro.expiracao-minutos` (10) e
+`app.cadastro.intervalo-limpeza-ms` (60000).
 
 ## Regras que valem conhecer
 
 - **Reaproveitamento de conta INATIVA**: um cadastro cujo prazo expirou volta a
   `PENDENTE` preservando `id` e `codigoUsuario`. Isso corrige o e-mail "preso" após
   timeout.
-- **Login social normaliza o status**: se a conta está `PENDENTE`, publica
-  `email-confirmado` + `termos-aceitos` (encerrando o processo, senão o timer
-  apagaria uma conta em uso) e ativa.
+- **Login social normaliza o status**: se a conta está `PENDENTE`, o provedor já
+  confirmou o e-mail, então ela é ativada direto — sem exigir confirmação nem aceite
+  de termos. Sem isso a limpeza desativaria uma conta em uso.
 - **`codigoUsuario`** (`nome#numero`) usa uma **sequence atômica**. Antes era
   `COUNT(*) + 1`, que tinha corrida e gerava código duplicado.
 - **Lockout**: N falhas de login travam a conta por um tempo (Redis, *fail-open*).
 
 ## Dependências
 
-Postgres · Redis (lockout) · Zeebe (obrigatório) · SMTP (e-mail)
+Postgres · Redis (lockout) · SMTP (e-mail)
+
+Não há mais dependência de broker externo para o cadastro funcionar.
 
 Consumido por [[BFF]]; a chave pública é consumida por [[Serviço APP]],
 [[Serviço Localização]] e [[Serviço Mídia]].

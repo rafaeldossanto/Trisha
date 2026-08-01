@@ -66,12 +66,15 @@ Sem réplica; o volume é o ponto único de falha para todas as fotos.
 **Caminho**: MinIO distribuído ou trocar por S3 gerenciado — a API é compatível,
 a mudança é de configuração.
 
-### 5. Zeebe single-broker
-Um broker sem exporter. O histórico do processo vive só nele, e ele é dependência
-**dura** do cadastro ([[Serviço Cadastro]]).
+### 5. ~~Zeebe single-broker~~ — RESOLVIDO em 01/08/2026
+O Camunda saiu do projeto: o fluxo de cadastro virou máquina de estado no banco, e
+com ele saíram ~1,2 GB de RAM e a dependência dura do cadastro. Ver
+[[Remoção do Camunda]].
 
-**Caminho**: cluster Zeebe, ou reavaliar se o Camunda ainda paga o próprio custo
-para um fluxo de e-mail relativamente simples.
+Fica a nota de escala que veio junto: `RegistrationCleanupJob` roda em toda
+instância. Com o serviço em instância única não há problema; ao escalar
+horizontalmente, avaliar ShedLock — ciclos concorrentes não corrompem dado (o
+desativar é idempotente), só duplicam trabalho.
 
 ### 6. Mosquitto sem cluster
 Broker único, exposto na internet.

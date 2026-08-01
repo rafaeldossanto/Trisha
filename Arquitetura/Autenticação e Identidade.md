@@ -54,9 +54,11 @@ consulta. Ver [[Visibilidade e Controle de Acesso]] e [[Segurança]].
 
 ## Cadastro por e-mail
 
-O `POST /usuario` **não** é um simples insert: ele inicia um processo Camunda que
-envia o e-mail de confirmação, espera o aceite dos termos e tem um timer que apaga a
-conta se nada acontecer. Detalhes em [[Serviço Cadastro]].
+O `POST /usuario` cria a conta em `PENDENTE` e dispara o e-mail de confirmação fora
+da requisição. A conta só vira `ATIVO` quando o e-mail é confirmado **e** os termos
+são aceitos — em qualquer ordem. Passado o prazo sem as duas etapas, uma varredura
+periódica desativa o cadastro e libera o e-mail. Detalhes em [[Serviço Cadastro]];
+o porquê de não ser mais um processo Camunda, em [[Remoção do Camunda]].
 
 ## Proteções
 
