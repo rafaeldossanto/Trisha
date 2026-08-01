@@ -49,6 +49,32 @@ cadastro   app      loc      midia    postgres
 > Camunda. O cadastro não depende mais de broker externo — ver
 > [[Remoção do Camunda]]. Isso derruba ~1,2 GB do requisito de memória.
 
+## Teto de memória
+
+Todo container tem `mem_limit`, e as cinco JVMs recebem
+`JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0`.
+
+| Container | Teto | Por quê |
+|---|---|---|
+| postgres | 1 GB | três schemas; é quem mais aproveita folga |
+| midia | 896 MB | multipart de até 50 MB passa pelo heap |
+| loc | 704 MB | consumo MQTT contínuo + PostGIS |
+| cadastro · app · bff | 640 MB | carga comparável |
+| minio | 512 MB | |
+| redis | 256 MB | tudo com TTL curto |
+| mosquitto · caddy | 128 MB | |
+
+**Soma: ~5,4 GB dos 8 GB.** A folga é proposital — Postgres e MinIO se apoiam no
+page cache do SO, que vive fora do limite do container.
+
+> [!important] Por que isso importa
+> Sem `mem_limit`, cada JVM enxerga a RAM inteira da máquina e dimensiona o heap
+> por cima dela (`MaxRAMPercentage` default = 25%). Com cinco serviços Java isso
+> é overcommit garantido: em operação normal ninguém reclama, mas num pico
+> simultâneo o kernel escolhe uma vítima e mata — em geral o Postgres, que é o
+> processo mais gordo. Com teto, falta de memória vira erro do processo certo, na
+> hora certa. Ver [[Escalabilidade]].
+
 ## Checklist de ativação
 
 1. **VPS** com Docker (4 GB+ de RAM)
