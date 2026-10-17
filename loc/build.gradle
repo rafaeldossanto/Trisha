@@ -1,0 +1,102 @@
+plugins {
+	id 'java'
+	id 'war'
+	id 'org.springframework.boot' version '4.0.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.trisha.Loc'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	testcontainersVersion = '1.20.4'
+}
+
+// SourceSet dedicado para testes de integracao (src/integrationTest/java).
+sourceSets {
+	integrationTest {
+		java.srcDir file('src/integrationTest/java')
+		resources.srcDir file('src/integrationTest/resources')
+		compileClasspath += sourceSets.main.output + sourceSets.test.output
+		runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+	}
+}
+
+configurations {
+	integrationTestImplementation.extendsFrom testImplementation
+	integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// Boot 4 modularizou os auto-configs: sem este modulo o flyway-core fica
+	// na classpath mas as migrations nunca rodam (falha silenciosa).
+	implementation 'org.springframework.boot:spring-boot-flyway'
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'org.hibernate.orm:hibernate-spatial'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-websocket'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	// Redis Pub/Sub: ponte do tempo real (localizacao ao vivo) entre instancias do servico.
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	// Ingestao da telemetria GPS via MQTT (broker resiliente a sinal fraco na trilha).
+	implementation 'org.springframework.boot:spring-boot-starter-integration'
+	implementation 'org.springframework.integration:spring-integration-mqtt'
+	// O Spring Integration 7 nao traz mais o cliente Paho transitivamente.
+	implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	runtimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
+	annotationProcessor 'org.projectlombok:lombok'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat-runtime'
+
+	// Testes de unidade (Mockito puro + AssertJ + JUnit 5)
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
+	testImplementation 'org.mockito:mockito-junit-jupiter'
+	testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// Testes de integracao (Testcontainers + PostGIS)
+	integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	integrationTestImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
+	integrationTestImplementation "org.testcontainers:postgresql:${testcontainersVersion}"
+}
+
+// 'test' roda SOMENTE testes de unidade e exclui qualquer @Tag("integracao").
+tasks.named('test') {
+	useJUnitPlatform {
+		excludeTags 'integracao'
+	}
+}
+
+// 'integrationTest' roda os @SpringBootTest com PostGIS real via Testcontainers.
+tasks.register('integrationTest', Test) {
+	description = 'Executa os testes de integracao (Testcontainers).'
+	group = 'verification'
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+	useJUnitPlatform()
+	shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('integrationTest')
+}

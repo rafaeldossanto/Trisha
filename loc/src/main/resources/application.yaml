@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: loc
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/trilha_localizacao
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # Dev: Hibernate cria/atualiza tabelas. Producao: trocar para 'validate'
+      # e gerar o baseline do schema via Flyway.
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.spatial.dialect.postgis.PostgisPG10Dialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  # Pub/Sub usado como ponte do tempo real (localizacao ao vivo) entre instancias.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Resource server: valida o Bearer da app pela chave publica do Cadastro (JWKS).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWKS_URI:http://localhost:8080/oauth2/jwks}
+
+server:
+  port: 8082
+
+# traceId (correlacao de requisicoes) recebido da borda no header X-Trace-Id.
+logging:
+  pattern:
+    level: "%5p [trace:%X{traceId:-}]"
+
+# Ingestao da telemetria GPS. O app mobile publica os pontos no broker e o
+# servico consome. QoS 1 + buffer no cliente cobrem o sinal fraco da trilha.
+mqtt:
+  broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
+  client-id: ${MQTT_CLIENT_ID:loc-consumer}
+  topico: ${MQTT_TOPICO:localizacao/ponto}
+  qos: ${MQTT_QOS:1}
+  # Vazio = conexao anonima (broker de dev). Em prod o Mosquitto exige auth
+  # (allow_anonymous false) — defina MQTT_USERNAME/MQTT_PASSWORD.
+  username: ${MQTT_USERNAME:}
+  password: ${MQTT_PASSWORD:}
+
+# URL do servico APP — consultada para a visibilidade AMIGOS (sao-amigos).
+servicos:
+  app: ${SERVICO_APP_URL:http://localhost:8081}
