@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: APP
+
+  datasource:
+    # Banco COMPARTILHADO com o servico Cadastro, que e o dono da tabela
+    # 'usuario' — aqui ela e lida como view read-only (entidade User @Immutable).
+    url: jdbc:postgresql://localhost:5432/trisha
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # Dev: Hibernate cria/atualiza tabelas. Producao: trocar para 'validate'
+      # e gerar o baseline do schema via Flyway.
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    # Historico proprio: o banco e compartilhado com o Cadastro e as duas
+    # sequencias de versao se cruzam (Cadastro V1-V5, APP V2 e V4-V8). Na tabela
+    # padrao 'flyway_schema_history' o segundo servico a subir encontraria uma
+    # V2 aplicada com checksum diferente do dele e abortaria o boot.
+    table: flyway_schema_history_app
+
+  # Resource server: valida o Bearer da app pela chave publica do Cadastro (JWKS).
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWKS_URI:http://localhost:8080/oauth2/jwks}
+
+server:
+  port: 8081
+
+# traceId (correlacao de requisicoes) recebido da borda no header X-Trace-Id.
+logging:
+  pattern:
+    level: "%5p [trace:%X{traceId:-}]"
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
