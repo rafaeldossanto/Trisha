@@ -1,0 +1,19 @@
+package com.trisha.app.adventure;
+
+import lombok.experimental.UtilityClass;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@UtilityClass
+public class ParticipantMapper {
+
+    public static AdventureParticipant toEntity(Adventure adventure, String userId) {
+        return AdventureParticipant.builder()
+                .id(UUID.randomUUID().toString())
+                .adventure(adventure)
+                .userId(userId)
+                .joinedAt(LocalDateTime.now())
+                .build();
+    }
+}
