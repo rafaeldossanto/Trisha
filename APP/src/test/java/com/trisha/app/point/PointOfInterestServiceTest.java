@@ -12,6 +12,7 @@ import com.trisha.app.stub.PointOfInterestStub;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,6 +41,8 @@ class PointOfInterestServiceTest {
     private PointOfInterestRepository pointRepository;
     @Mock
     private EvidenceRepository evidenceRepository;
+    @Mock
+    private PointOfInterestUserStatusRepository statusRepository;
     @Mock
     private PathRepository pathRepository;
     @Mock
@@ -215,5 +219,42 @@ class PointOfInterestServiceTest {
                 .hasMessageContaining("sem acesso");
 
         verify(pointRepository, never()).findByPathId(any(), any());
+    }
+
+    // ---- deleteByPathIds (descarte de dados ao sair/excluir aventura) ----
+
+    @Test
+    @DisplayName("deleteByPathIds should delete status, evidence and points of the paths, in this order")
+    void shouldDeletePointsByPathIds() {
+        PointOfInterest point = PointOfInterestStub.aPoint().build();
+        when(pointRepository.findByPathIdIn(List.of(PathStub.ID))).thenReturn(List.of(point));
+
+        service.deleteByPathIds(List.of(PathStub.ID));
+
+        InOrder order = inOrder(statusRepository, evidenceRepository, pointRepository);
+        order.verify(statusRepository).deleteByPointIdIn(List.of(point.getId()));
+        order.verify(evidenceRepository).deleteByPointIdIn(List.of(point.getId()));
+        order.verify(pointRepository).deleteAll(List.of(point));
+    }
+
+    @Test
+    @DisplayName("deleteByPathIds should only delete the (empty) point list when the paths have no points")
+    void shouldSkipStatusAndEvidenceWithoutPoints() {
+        when(pointRepository.findByPathIdIn(List.of(PathStub.ID))).thenReturn(List.of());
+
+        service.deleteByPathIds(List.of(PathStub.ID));
+
+        verify(statusRepository, never()).deleteByPointIdIn(any());
+        verify(evidenceRepository, never()).deleteByPointIdIn(any());
+        verify(pointRepository).deleteAll(List.of());
+    }
+
+    @Test
+    @DisplayName("deleteByPathIds should not query anything when there are no paths")
+    void shouldDeleteNothingWithoutPaths() {
+        service.deleteByPathIds(List.of());
+
+        verify(pointRepository, never()).findByPathIdIn(any());
+        verify(pointRepository, never()).deleteAll(any());
     }
 }

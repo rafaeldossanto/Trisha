@@ -181,4 +181,36 @@ class PathServiceTest {
         assertThat(response).isEmpty();
         verify(pathRepository, never()).findDiscoverableByIds(any(), any());
     }
+
+    // ---- reassign / deleteByAdventureAndUser (saida e exclusao de aventura) ----
+
+    @Test
+    @DisplayName("reassign should move the user's paths in the adventure to the target and return the count")
+    void shouldReassignPaths() {
+        Path first = PathStub.aPath().id("cam-1").build();
+        Path second = PathStub.aPath().id("cam-2").build();
+        Adventure target = AdventureStub.anAdventure().id("pessoal").build();
+        when(pathRepository.findByAdventureIdAndUserId(AdventureStub.ID, PathStub.USER_ID))
+                .thenReturn(List.of(first, second));
+
+        int moved = service.reassign(AdventureStub.ID, PathStub.USER_ID, target);
+
+        assertThat(moved).isEqualTo(2);
+        assertThat(first.getAdventure()).isSameAs(target);
+        assertThat(second.getAdventure()).isSameAs(target);
+        verify(pathRepository).saveAll(List.of(first, second));
+    }
+
+    @Test
+    @DisplayName("deleteByAdventureAndUser should delete the user's paths in the adventure and return the count")
+    void shouldDeletePathsByAdventureAndUser() {
+        Path path = PathStub.aPath().build();
+        when(pathRepository.findByAdventureIdAndUserId(AdventureStub.ID, PathStub.USER_ID))
+                .thenReturn(List.of(path));
+
+        int deleted = service.deleteByAdventureAndUser(AdventureStub.ID, PathStub.USER_ID);
+
+        assertThat(deleted).isEqualTo(1);
+        verify(pathRepository).deleteAll(List.of(path));
+    }
 }

@@ -27,7 +27,6 @@ public class AdventureService {
     private final RegionRepository regionRepository;
     private final FollowerRepository followerRepository;
     private final AdventureAccessService accessService;
-    private final AdventureExitService adventureExitService;
     private final AdventureMetricsAssembler metricsAssembler;
 
     @Transactional
@@ -36,12 +35,26 @@ public class AdventureService {
 
         Region region = resolveRegion(userId, request.regionId());
 
-        var adventure = adventureRepository.save(AdventureMapper.toEntity(request, region, userId));
-
-        participantRepository.save(ParticipantMapper.toEntity(adventure, userId));
+        var adventure = saveWithOwner(AdventureMapper.toEntity(request, region, userId));
 
         log.info("Adventure created with id: {}", adventure.getId());
         return metricsAssembler.build(adventure);
+    }
+
+    /**
+     * Aventura pessoal PRIVADA que recebe os registros de quem sai de uma
+     * aventura em grupo (ver AdventureMembershipService).
+     */
+    @Transactional
+    public Adventure createPersonalCopy(Adventure origin, String userId) {
+        return saveWithOwner(AdventureMapper.toPersonalCopy(origin, userId));
+    }
+
+    /** Toda aventura nasce com o dono como participante. */
+    private Adventure saveWithOwner(Adventure adventure) {
+        Adventure saved = adventureRepository.save(adventure);
+        participantRepository.save(ParticipantMapper.toEntity(saved, saved.getUserId()));
+        return saved;
     }
 
     @Transactional
@@ -94,23 +107,6 @@ public class AdventureService {
         Adventure adventure = findOwner(userId, id);
         adventure.setStatus(status);
         return metricsAssembler.build(adventureRepository.save(adventure));
-    }
-
-    public void addParticipant(String ownerId, String adventureId, String userId) {
-        Adventure adventure = findOwner(ownerId, adventureId);
-
-        if (participantRepository.existsByAdventureIdAndUserId(adventureId, userId)) {
-            throw new IllegalArgumentException("Usuario ja participa dessa aventura");
-        }
-
-        participantRepository.save(ParticipantMapper.toEntity(adventure, userId));
-        log.info("User {} added to adventure {}", userId, adventureId);
-    }
-
-    @Transactional
-    public void delete(String userId, String id) {
-        Adventure adventure = findOwner(userId, id);
-        adventureExitService.deleteWithContent(adventure);
     }
 
     private Adventure findById(String id) {

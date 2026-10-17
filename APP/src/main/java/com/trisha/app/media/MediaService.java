@@ -15,6 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 import static java.util.Objects.nonNull;
 
 @Service
@@ -75,5 +77,19 @@ public class MediaService {
 
         mediaRepository.delete(media);
         log.info("Media {} deleted", id);
+    }
+
+    /** Move as midias do usuario na aventura (incl. avulsas) para {@code target}. */
+    @Transactional
+    public void reassign(String adventureId, String userId, Adventure target) {
+        List<Media> medias = mediaRepository.findByAdventureIdAndUserId(adventureId, userId);
+        medias.forEach(media -> media.setAdventure(target));
+        mediaRepository.saveAll(medias);
+    }
+
+    /** Apaga as midias do usuario na aventura (incl. avulsas). */
+    @Transactional
+    public void deleteByAdventureAndUser(String adventureId, String userId) {
+        mediaRepository.deleteAll(mediaRepository.findByAdventureIdAndUserId(adventureId, userId));
     }
 }

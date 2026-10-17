@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdventureController {
 
     private final AdventureService adventureService;
-    private final AdventureExitService adventureExitService;
+    private final AdventureMembershipService membershipService;
 
     @PostMapping
     public AdventureResponse create(AuthenticatedUser user,
@@ -71,7 +71,7 @@ public class AdventureController {
     public void addParticipant(AuthenticatedUser user,
                                @PathVariable String id,
                                @RequestParam String userId) {
-        adventureService.addParticipant(user.id(), id, userId);
+        membershipService.addParticipant(user.id(), id, userId);
     }
 
     /** O proprio usuario sai da aventura em grupo; manterDados preserva os registros. */
@@ -79,7 +79,7 @@ public class AdventureController {
     public LeaveAdventureResponse leave(AuthenticatedUser user,
                                         @PathVariable String id,
                                         @RequestParam(defaultValue = "true") boolean manterDados) {
-        return adventureExitService.leave(user.id(), id, manterDados);
+        return membershipService.leave(user.id(), id, manterDados);
     }
 
     /** O dono remove um participante; os dados do removido sao sempre preservados. */
@@ -87,12 +87,12 @@ public class AdventureController {
     public LeaveAdventureResponse kick(AuthenticatedUser user,
                                        @PathVariable String id,
                                        @PathVariable String userId) {
-        return adventureExitService.kick(user.id(), id, userId);
+        return membershipService.kick(user.id(), id, userId);
     }
 
     @DeleteMapping("/{id}")
     public void delete(AuthenticatedUser user,
                        @PathVariable String id) {
-        adventureService.delete(user.id(), id);
+        membershipService.delete(user.id(), id);
     }
 }

@@ -189,4 +189,32 @@ class MediaServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Midia nao encontrada");
     }
+
+    // ---- reassign / deleteByAdventureAndUser (saida e exclusao de aventura) ----
+
+    @Test
+    @DisplayName("reassign should move the user's media in the adventure to the target")
+    void shouldReassignMedia() {
+        Media media = MediaStub.aMedia().build();
+        Adventure target = AdventureStub.anAdventure().id("pessoal").build();
+        when(mediaRepository.findByAdventureIdAndUserId(AdventureStub.ID, MediaStub.USER_ID))
+                .thenReturn(List.of(media));
+
+        service.reassign(AdventureStub.ID, MediaStub.USER_ID, target);
+
+        assertThat(media.getAdventure()).isSameAs(target);
+        verify(mediaRepository).saveAll(List.of(media));
+    }
+
+    @Test
+    @DisplayName("deleteByAdventureAndUser should delete the user's media in the adventure")
+    void shouldDeleteMediaByAdventureAndUser() {
+        Media media = MediaStub.aMedia().build();
+        when(mediaRepository.findByAdventureIdAndUserId(AdventureStub.ID, MediaStub.USER_ID))
+                .thenReturn(List.of(media));
+
+        service.deleteByAdventureAndUser(AdventureStub.ID, MediaStub.USER_ID);
+
+        verify(mediaRepository).deleteAll(List.of(media));
+    }
 }

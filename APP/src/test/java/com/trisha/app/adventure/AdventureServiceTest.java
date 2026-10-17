@@ -42,8 +42,6 @@ class AdventureServiceTest {
     @Mock
     private AdventureAccessService accessService;
     @Mock
-    private AdventureExitService adventureExitService;
-    @Mock
     private com.trisha.app.path.PathRepository pathRepository;
 
     private AdventureService service;
@@ -53,7 +51,7 @@ class AdventureServiceTest {
         AdventureMetricsAssembler metricsAssembler =
                 new AdventureMetricsAssembler(participantRepository, pathRepository);
         service = new AdventureService(adventureRepository, participantRepository, regionRepository,
-                followerRepository, accessService, adventureExitService, metricsAssembler);
+                followerRepository, accessService, metricsAssembler);
     }
 
     @Test
@@ -135,58 +133,23 @@ class AdventureServiceTest {
     }
 
     @Test
-    @DisplayName("addParticipant should persist when owner invites a new participant")
-    void shouldAddParticipant() {
-        Adventure adventure = AdventureStub.anAdventure().build();
-        when(adventureRepository.findById(AdventureStub.ID)).thenReturn(Optional.of(adventure));
-        when(participantRepository.existsByAdventureIdAndUserId(AdventureStub.ID, "usuario-9"))
-                .thenReturn(false);
+    @DisplayName("createPersonalCopy saves a PRIVATE copy owned by the user, with the user as participant")
+    void shouldCreatePersonalCopy() {
+        Adventure origin = AdventureStub.anAdventure()
+                .status(AdventureStatus.CONCLUIDA).visibility(AdventureVisibility.PUBLICA).build();
+        when(adventureRepository.save(any(Adventure.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addParticipant(AdventureStub.USER_ID, AdventureStub.ID, "usuario-9");
+        Adventure personal = service.createPersonalCopy(origin, "membro-2");
 
+        assertThat(personal.getId()).isNotNull().isNotEqualTo(origin.getId());
+        assertThat(personal.getUserId()).isEqualTo("membro-2");
+        assertThat(personal.getVisibility()).isEqualTo(AdventureVisibility.PRIVADA);
+        assertThat(personal.getDestination()).isEqualTo(origin.getDestination());
+        assertThat(personal.getStatus()).isEqualTo(AdventureStatus.CONCLUIDA);
+        assertThat(personal.getRegion()).isNull();
         ArgumentCaptor<AdventureParticipant> captor = ArgumentCaptor.forClass(AdventureParticipant.class);
         verify(participantRepository).save(captor.capture());
-        assertThat(captor.getValue().getUserId()).isEqualTo("usuario-9");
-    }
-
-    @Test
-    @DisplayName("addParticipant should fail when caller does not own the adventure")
-    void shouldFailAddParticipantNotOwner() {
-        Adventure adventure = AdventureStub.anAdventure().build();
-        when(adventureRepository.findById(AdventureStub.ID)).thenReturn(Optional.of(adventure));
-
-        // Sem o gate de dono, qualquer um se adicionaria a uma aventura SO_GRUPO
-        // e ganharia acesso de leitura a ela.
-        assertThatThrownBy(() -> service.addParticipant("intruso", AdventureStub.ID, "intruso"))
-                .isInstanceOf(com.trisha.app.shared.exception.ForbiddenException.class)
-                .hasMessageContaining("nao e o dono");
-
-        verify(participantRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("addParticipant should fail when user is already participating")
-    void shouldFailDuplicateParticipant() {
-        Adventure adventure = AdventureStub.anAdventure().build();
-        when(adventureRepository.findById(AdventureStub.ID)).thenReturn(Optional.of(adventure));
-        when(participantRepository.existsByAdventureIdAndUserId(AdventureStub.ID, "usuario-9"))
-                .thenReturn(true);
-
-        assertThatThrownBy(() -> service.addParticipant(AdventureStub.USER_ID, AdventureStub.ID, "usuario-9"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("ja participa");
-
-        verify(participantRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("delete should remove existing adventure")
-    void shouldDelete() {
-        Adventure adventure = AdventureStub.anAdventure().build();
-        when(adventureRepository.findById(AdventureStub.ID)).thenReturn(Optional.of(adventure));
-
-        service.delete(AdventureStub.USER_ID, AdventureStub.ID);
-
-        verify(adventureExitService).deleteWithContent(adventure);
+        assertThat(captor.getValue().getUserId()).isEqualTo("membro-2");
+        assertThat(captor.getValue().getAdventure()).isSameAs(personal);
     }
 }

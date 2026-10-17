@@ -28,6 +28,7 @@ public class PointOfInterestService {
 
     private final PointOfInterestRepository pointRepository;
     private final EvidenceRepository evidenceRepository;
+    private final PointOfInterestUserStatusRepository statusRepository;
     private final PathRepository pathRepository;
     private final AdventureAccessService accessService;
 
@@ -90,6 +91,24 @@ public class PointOfInterestService {
 
         return page.map(p -> PointOfInterestMapper.toResponse(
                 p, calculateLevel(p, validatedPerPoint.getOrDefault(p.getId(), 0L))));
+    }
+
+    /**
+     * Apaga os pontos de um conjunto de caminhos com o que pende deles, nesta
+     * ordem: marcacoes pessoais, evidencias e os pontos.
+     */
+    @Transactional
+    public void deleteByPathIds(List<String> pathIds) {
+        if (pathIds.isEmpty()) {
+            return;
+        }
+        List<PointOfInterest> points = pointRepository.findByPathIdIn(pathIds);
+        List<String> pointIds = points.stream().map(PointOfInterest::getId).toList();
+        if (!pointIds.isEmpty()) {
+            statusRepository.deleteByPointIdIn(pointIds);
+            evidenceRepository.deleteByPointIdIn(pointIds);
+        }
+        pointRepository.deleteAll(points);
     }
 
     private Map<String, Long> countValidatedInBatch(List<PointOfInterest> points) {

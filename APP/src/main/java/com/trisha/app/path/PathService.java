@@ -108,6 +108,26 @@ public class PathService {
                 .stream().map(PathMapper::toDiscoveryResponse).toList();
     }
 
+    /** Move os caminhos do usuario na aventura para {@code target}; devolve quantos moveu. */
+    @Transactional
+    public int reassign(String adventureId, String userId, Adventure target) {
+        List<Path> paths = pathRepository.findByAdventureIdAndUserId(adventureId, userId);
+        paths.forEach(path -> path.setAdventure(target));
+        pathRepository.saveAll(paths);
+        return paths.size();
+    }
+
+    /**
+     * Apaga os caminhos do usuario na aventura; devolve quantos apagou. Os pontos
+     * e as midias que dependem deles precisam ter sido apagados antes.
+     */
+    @Transactional
+    public int deleteByAdventureAndUser(String adventureId, String userId) {
+        List<Path> paths = pathRepository.findByAdventureIdAndUserId(adventureId, userId);
+        pathRepository.deleteAll(paths);
+        return paths.size();
+    }
+
     private Path findById(String id) {
         return pathRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Caminho nao encontrado"));

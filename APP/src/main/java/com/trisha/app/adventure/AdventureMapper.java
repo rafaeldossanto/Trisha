@@ -22,6 +22,20 @@ public class AdventureMapper {
                 .build();
     }
 
+    /**
+     * Aventura pessoal PRIVADA de quem sai de uma aventura em grupo: herda o
+     * destino e o status da original e recebe os registros movidos.
+     */
+    public static Adventure toPersonalCopy(Adventure origin, String userId) {
+        return Adventure.builder()
+                .id(UUID.randomUUID().toString())
+                .userId(userId)
+                .destination(origin.getDestination())
+                .status(origin.getStatus())
+                .visibility(AdventureVisibility.PRIVADA)
+                .build();
+    }
+
     public static AdventureResponse toResponse(Adventure adventure, long participantsCount, Double durationHours) {
         return AdventureResponse.builder()
                 .id(adventure.getId())

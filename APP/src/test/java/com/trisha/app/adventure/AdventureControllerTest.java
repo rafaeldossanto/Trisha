@@ -26,6 +26,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -56,7 +57,7 @@ class AdventureControllerTest {
     private AdventureService adventureService;
 
     @MockitoBean
-    private AdventureExitService adventureExitService;
+    private AdventureMembershipService membershipService;
 
     private AdventureResponse responseStub() {
         return AdventureResponse.builder()
@@ -151,7 +152,7 @@ class AdventureControllerTest {
     @DisplayName("DELETE /aventura/{id} retorna 403 quando nao e o dono")
     void shouldRejectDeleteByNonOwner() throws Exception {
         doThrow(new com.trisha.app.shared.exception.ForbiddenException("Voce nao e o dono desta aventura"))
-                .when(adventureService).delete(any(), eq(ADVENTURE_ID));
+                .when(membershipService).delete(any(), eq(ADVENTURE_ID));
 
         mockMvc.perform(delete("/aventura/{id}", ADVENTURE_ID)
                         .with(jwt().jwt(j -> j.subject("outro-usuario").claim("codigoUsuario", "code-outro"))))
@@ -164,12 +165,37 @@ class AdventureControllerTest {
         mockMvc.perform(delete("/aventura/{id}", ADVENTURE_ID)
                         .with(jwt().jwt(j -> j.subject(USER_ID).claim("codigoUsuario", "code-1"))))
                 .andExpect(status().isOk());
+
+        verify(membershipService).delete(USER_ID, ADVENTURE_ID);
+    }
+
+    @Test
+    @DisplayName("POST /aventura/{id}/participante adiciona o participante pelo dono")
+    void shouldAddParticipant() throws Exception {
+        mockMvc.perform(post("/aventura/{id}/participante", ADVENTURE_ID)
+                        .with(jwt().jwt(j -> j.subject(USER_ID).claim("codigoUsuario", "code-1")))
+                        .param("userId", "usuario-9"))
+                .andExpect(status().isOk());
+
+        verify(membershipService).addParticipant(USER_ID, ADVENTURE_ID, "usuario-9");
+    }
+
+    @Test
+    @DisplayName("POST /aventura/{id}/participante retorna 403 quando nao e o dono")
+    void shouldRejectAddParticipantByNonOwner() throws Exception {
+        doThrow(new com.trisha.app.shared.exception.ForbiddenException("Voce nao e o dono desta aventura"))
+                .when(membershipService).addParticipant(any(), eq(ADVENTURE_ID), any());
+
+        mockMvc.perform(post("/aventura/{id}/participante", ADVENTURE_ID)
+                        .with(jwt().jwt(j -> j.subject("outro-usuario").claim("codigoUsuario", "code-outro")))
+                        .param("userId", "outro-usuario"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("DELETE /aventura/{id}/participante sai da aventura e retorna a aventura pessoal criada")
     void shouldLeaveAdventure() throws Exception {
-        when(adventureExitService.leave(eq(USER_ID), eq(ADVENTURE_ID), eq(true)))
+        when(membershipService.leave(eq(USER_ID), eq(ADVENTURE_ID), eq(true)))
                 .thenReturn(new LeaveAdventureResponse("aventura-pessoal", 1, 0));
 
         mockMvc.perform(delete("/aventura/{id}/participante", ADVENTURE_ID)
@@ -182,7 +208,7 @@ class AdventureControllerTest {
     @Test
     @DisplayName("DELETE /aventura/{id}/participante/{userId} remove participante (kick) pelo dono")
     void shouldKickParticipant() throws Exception {
-        when(adventureExitService.kick(eq(USER_ID), eq(ADVENTURE_ID), eq("membro-2")))
+        when(membershipService.kick(eq(USER_ID), eq(ADVENTURE_ID), eq("membro-2")))
                 .thenReturn(new LeaveAdventureResponse("aventura-pessoal", 2, 0));
 
         mockMvc.perform(delete("/aventura/{id}/participante/{userId}", ADVENTURE_ID, "membro-2")
