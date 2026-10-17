@@ -3,7 +3,8 @@ import 'package:dio/dio.dart';
 import '../storage/token_storage.dart';
 
 /// Injeta o Bearer da sessao em toda requisicao e, num 401, limpa a sessao
-/// (token expirado/invalido) — o guard do router leva de volta ao login.
+/// (token expirado/invalido) — ao recarregar a pagina, o app entra de novo com
+/// o usuario de teste.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._tokenStorage);
 

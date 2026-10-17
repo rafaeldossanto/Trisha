@@ -31,7 +31,14 @@ e adaptado; a duplicação é assumida (ver [[Decisões Deliberadas]]).
 | `/feed` | 630px | coluna de leitura |
 | `/explorar`, `/perfil-meu` | 935px | grade respira |
 | rotas empurradas | 800px | via wrapper `WebPage` |
-| `/login` | 440px | formulário curto |
+
+### Sem tela de login (fase de teste)
+Desde 17/10/2026 o web **abre direto no `/home`**: saíram a tela de login, o guard
+do router e os botões de sair. Sem sessão salva, o `AuthProvider.bootstrap` faz o
+`dev-login` do [[BFF]] sozinho com um usuário fixo (`teste@trisha.dev`, "Teste").
+Se a API não responder em 3s (ex.: front publicado sem o back no ar), o app abre
+mesmo assim, sem sessão, e cada tela mostra o próprio erro. Volta a ter login
+quando o login real do [[App Mobile]] for trazido para o web.
 
 > [!note] Rotas empurradas cobrem a side nav
 > Telas como `/aventuras/:id` são empurradas no root navigator e **escondem a

@@ -3,7 +3,7 @@ import '../domain/user.dart';
 import 'auth_api.dart';
 
 /// Orchestrates API + storage: on login, persists token and userId; exposes the
-/// session state (hasToken/userId) and logout.
+/// session state (hasToken/userId).
 class AuthRepository {
   AuthRepository(this._api, this._storage);
 
@@ -24,6 +24,4 @@ class AuthRepository {
   Future<String?> userId() => _storage.readUserId();
 
   Future<User> getUser(String id) => _api.getUser(id);
-
-  Future<void> logout() => _storage.clear();
 }

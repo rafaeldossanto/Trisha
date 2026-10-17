@@ -153,11 +153,6 @@ class _FeedScreenState extends State<FeedScreen> {
             icon: const Icon(Icons.favorite_border),
             onPressed: () => context.push('/amizades'),
           ),
-          IconButton(
-            tooltip: 'Sair',
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthProvider>().logout(),
-          ),
         ],
       ),
       body: RefreshIndicator(

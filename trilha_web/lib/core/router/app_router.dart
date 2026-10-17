@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/presentation/auth_provider.dart';
-import '../../features/auth/presentation/login_screen.dart';
 import '../../features/adventure/presentation/adventure_detail_screen.dart';
 import '../../features/adventure/presentation/adventures_screen.dart';
 import '../../features/explore/presentation/explore_screen.dart';
@@ -23,36 +21,21 @@ import '../../features/tracking/presentation/tracking_screen.dart';
 import '../../shared/widgets/main_shell.dart';
 import '../../shared/widgets/web_page.dart';
 
-/// Builds the GoRouter with authentication guard. The main tabs (home map,
-/// explore, feed, profile) live in a StatefulShellRoute; on wide windows the
-/// MainShell renders the Instagram-like side nav and, on narrow ones, the
-/// bottom bar. Detail screens are pushed on the root navigator wrapped in
-/// [WebPage] (centered column on wide windows); map/tracking screens stay
-/// full-bleed. The home is the collaborative dark map with the trails plotted
-/// in colors.
-GoRouter buildRouter(AuthProvider auth) {
+/// Builds the GoRouter. There is no login screen nor authentication guard: the
+/// app opens straight on the home (the session comes from [AuthProvider]'s
+/// bootstrap). The main tabs (home map, explore, feed, profile) live in a
+/// StatefulShellRoute; on wide windows the MainShell renders the
+/// Instagram-like side nav and, on narrow ones, the bottom bar. Detail screens
+/// are pushed on the root navigator wrapped in [WebPage] (centered column on
+/// wide windows); map/tracking screens stay full-bleed. The home is the
+/// collaborative dark map with the trails plotted in colors.
+GoRouter buildRouter() {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
 
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     initialLocation: '/home',
-    refreshListenable: auth,
-    redirect: (context, state) {
-      final goingToLogin = state.matchedLocation == '/login';
-
-      if (!auth.isLoggedIn) {
-        return goingToLogin ? null : '/login';
-      }
-      if (goingToLogin) {
-        return '/home';
-      }
-      return null;
-    },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const WebPage(maxWidth: 440, child: LoginScreen()),
-      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => MainShell(shell: shell),
         branches: [

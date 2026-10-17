@@ -102,11 +102,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             icon: const Icon(Icons.folder_outlined),
             onPressed: () => context.push('/regioes'),
           ),
-          IconButton(
-            tooltip: 'Sair',
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthProvider>().logout(),
-          ),
         ],
       ),
       body: RefreshIndicator(

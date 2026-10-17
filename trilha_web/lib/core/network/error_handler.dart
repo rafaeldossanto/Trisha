@@ -38,7 +38,7 @@ abstract final class ErrorHandler {
   static String _fromStatus(int? status) {
     return switch (status) {
       400 => 'Dados invalidos. Confira as informacoes e tente novamente.',
-      401 => 'Sessao expirada. Faca login novamente.',
+      401 => 'Sessao expirada. Recarregue a pagina.',
       403 => 'Voce nao tem permissao para esta acao.',
       404 => 'Recurso nao encontrado.',
       409 => 'Conflito: este registro ja existe.',

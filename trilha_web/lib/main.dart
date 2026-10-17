@@ -29,8 +29,8 @@ Future<void> main() async {
   final authProvider = AuthProvider(authRepository);
   await authProvider.bootstrap();
 
-  // Router created once, outside build, listening to AuthProvider.
-  final router = buildRouter(authProvider);
+  // Router created once, outside build.
+  final router = buildRouter();
 
   runApp(
     MultiProvider(

@@ -1,33 +1,37 @@
 import 'package:flutter/foundation.dart';
 
-import '../../../core/network/error_handler.dart';
 import '../data/auth_repository.dart';
 import '../domain/user.dart';
 
-/// Authentication state of the app. The router listens to this ChangeNotifier
-/// (refreshListenable) to re-evaluate the guard when the session changes.
+/// Session state of the app. There is no login screen while the front is being
+/// tested: without a stored session, [bootstrap] enters with a fixed test user
+/// through the BFF dev-login. Without the API (e.g.: front published while the
+/// back is not online) the app still opens, only without a session.
 class AuthProvider extends ChangeNotifier {
   AuthProvider(this._repository);
 
+  static const _testEmail = 'teste@trisha.dev';
+  static const _testName = 'Teste';
+
+  /// Sem o back no ar o pedido pode ficar parado (ex.: o navegador perguntando
+  /// se libera o acesso ao localhost): o app nao espera mais que isso para abrir.
+  static const _testLoginTimeout = Duration(seconds: 3);
+
   final AuthRepository _repository;
 
-  bool _loading = false;
-  String? _error;
   User? _user;
   String? _userId;
-  bool _isLoggedIn = false;
 
-  bool get loading => _loading;
-  String? get error => _error;
   User? get user => _user;
   String? get userId => _userId;
-  bool get isLoggedIn => _isLoggedIn;
 
-  /// Restores the session from storage (called before runApp).
+  /// Restores the session from storage or, without one, enters with the test
+  /// user (called before runApp).
   Future<void> bootstrap() async {
-    _isLoggedIn = await _repository.hasToken();
-    if (_isLoggedIn) {
+    if (await _repository.hasToken()) {
       _userId = await _repository.userId();
+    } else {
+      await _testLogin().timeout(_testLoginTimeout, onTimeout: () {});
     }
     notifyListeners();
   }
@@ -46,29 +50,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login({required String email, required String name}) async {
-    _loading = true;
-    _error = null;
-    notifyListeners();
+  Future<void> _testLogin() async {
     try {
-      final user = await _repository.devLogin(email: email, name: name);
+      final user = await _repository.devLogin(email: _testEmail, name: _testName);
       _user = user;
       _userId = user.id;
-      _isLoggedIn = true;
-    } catch (e, st) {
-      _error = ErrorHandler.message(e, st);
-      _isLoggedIn = false;
-    } finally {
-      _loading = false;
       notifyListeners();
+    } catch (_) {
+      // Sem a API o app abre sem sessao; cada tela mostra o proprio erro.
     }
-  }
-
-  Future<void> logout() async {
-    await _repository.logout();
-    _user = null;
-    _userId = null;
-    _isLoggedIn = false;
-    notifyListeners();
   }
 }

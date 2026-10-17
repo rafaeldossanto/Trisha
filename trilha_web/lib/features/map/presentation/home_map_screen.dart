@@ -490,11 +490,6 @@ class _HomeMapScreenState extends State<HomeMapScreen> {
                   icon: const Icon(Icons.search),
                   onPressed: () => setState(() => _placeSearchOpen = true),
                 ),
-                IconButton(
-                  tooltip: 'Sair',
-                  icon: const Icon(Icons.logout),
-                  onPressed: () => context.read<AuthProvider>().logout(),
-                ),
               ],
             ),
           ),
