@@ -1,0 +1,17 @@
+# Cada projeto tem o proprio .gitignore na sua pasta; aqui fica so o que e da raiz.
+
+# Notas soltas, so locais por decisao (17/10/2026). A documentacao versionada e o
+# cofre em Docs/ — estas acumulam informacao desatualizada.
+/ANALISE_PROJETO_TRILHA.md
+/CONTEXTO-TRILHA.md
+/RESUMO_PROJETO_TRILHA.md
+/RESUMO_TRILHA_CODE.md
+/Fluxo Projeto.drawio
+
+# IDE e sistema operacional, quando abertos na raiz do monorepo
+/.idea/
+/.vscode/
+/*.iml
+.DS_Store
+Thumbs.db
+desktop.ini
