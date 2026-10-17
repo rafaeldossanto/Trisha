@@ -1,8 +1,6 @@
 package com.trisha.cadastro.account;
 
-import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
-import com.trisha.cadastro.authentication.social.ProviderUserData;
+import com.trisha.cadastro.account.dto.UserResponse;
 import lombok.experimental.UtilityClass;
 
 import java.time.LocalDateTime;
@@ -11,52 +9,26 @@ import java.util.UUID;
 @UtilityClass
 public class UserMapper {
 
-    public User toEntity(UserCreateRequest request, String encodedPassword, Long sequence) {
-        return User.builder()
-                .id(UUID.randomUUID().toString())
-                .name(request.name())
-                .email(request.email())
-                .password(encodedPassword)
-                .userCode(GenerateUtil.makeCode(request.name(), sequence))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    public User mapToReactivated(User user, UserCreateRequest request, String encodedPassword) {
-        user.setName(request.name());
-        user.setPassword(encodedPassword);
-        user.setStatus(RegistrationStatus.PENDENTE);
-        user.setUpdatedAt(LocalDateTime.now());
-        return user;
-    }
-
-    public User toEntitySocial(ProviderUserData data, String name, Long sequence) {
-        return User.builder()
-                .id(UUID.randomUUID().toString())
-                .name(name)
-                .email(data.email())
-                .userCode(GenerateUtil.makeCode(name, sequence))
-                .status(RegistrationStatus.ATIVO)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
-
-    public User toEntityDev(String email, String name, Long sequence) {
+    /**
+     * Unico ponto que monta um usuario novo. O cadastro por senha nasce PENDENTE;
+     * o social e o dev-login nascem ATIVOS e sem senha ({@code encodedPassword} nulo).
+     */
+    public User toEntity(String name, String email, String encodedPassword,
+                         RegistrationStatus status, Long sequence) {
         return User.builder()
                 .id(UUID.randomUUID().toString())
                 .name(name)
                 .email(email)
-                .userCode(GenerateUtil.makeCode(name, sequence))
-                .status(RegistrationStatus.ATIVO)
+                .password(encodedPassword)
+                .userCode(UserCode.of(name, sequence))
+                .status(status)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
 
-    public UserDTO toResponse(User user) {
-        return UserDTO.builder()
+    public UserResponse toResponse(User user) {
+        return UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())

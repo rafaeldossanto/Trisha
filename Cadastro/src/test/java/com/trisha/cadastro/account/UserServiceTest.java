@@ -1,7 +1,7 @@
 package com.trisha.cadastro.account;
 
 import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import com.trisha.cadastro.account.dto.UserUpdateRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +19,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,11 +60,11 @@ class UserServiceTest {
 
     @Test
     void create_deveSalvarERetornarDTO_quandoEmailNaoExiste() {
-        when(repository.findByEmail("rafael@email.com")).thenReturn(null);
+        when(repository.findByEmail("rafael@email.com")).thenReturn(Optional.empty());
         when(repository.nextSequence()).thenReturn(1L);
         when(repository.save(any())).thenReturn(userStub());
 
-        UserDTO result = service.create(createRequestStub());
+        UserResponse result = service.create(createRequestStub());
 
         assertThat(result).isNotNull();
         assertThat(result.email()).isEqualTo("rafael@email.com");
@@ -73,7 +74,7 @@ class UserServiceTest {
 
     @Test
     void create_deveSalvarSenhaComHash_naoTextoPlano() {
-        when(repository.findByEmail("rafael@email.com")).thenReturn(null);
+        when(repository.findByEmail("rafael@email.com")).thenReturn(Optional.empty());
         when(repository.nextSequence()).thenReturn(1L);
 
         service.create(createRequestStub());
@@ -87,7 +88,7 @@ class UserServiceTest {
 
     @Test
     void create_deveLancarExcecao_quandoEmailJaExiste() {
-        when(repository.findByEmail("rafael@email.com")).thenReturn(userStub());
+        when(repository.findByEmail("rafael@email.com")).thenReturn(Optional.of(userStub()));
 
         assertThatThrownBy(() -> service.create(createRequestStub()))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -98,9 +99,9 @@ class UserServiceTest {
     void create_deveReaproveitarRegistro_quandoEmailPertenceAContaInativa() {
         User inactive = userStub();
         inactive.setStatus(RegistrationStatus.INATIVO);
-        when(repository.findByEmail("rafael@email.com")).thenReturn(inactive);
+        when(repository.findByEmail("rafael@email.com")).thenReturn(Optional.of(inactive));
 
-        UserDTO result = service.create(
+        UserResponse result = service.create(
                 new UserCreateRequest("Rafael Novo", "rafael@email.com", "novaSenha"));
 
         assertThat(result).isNotNull();
@@ -122,7 +123,7 @@ class UserServiceTest {
     void getById_deveRetornarDTO_quandoUsuarioExiste() {
         when(repository.findById("id-123")).thenReturn(Optional.of(userStub()));
 
-        UserDTO result = service.getById("id-123");
+        UserResponse result = service.getById("id-123");
 
         assertThat(result).isNotNull();
         assertThat(result.email()).isEqualTo("rafael@email.com");
@@ -146,7 +147,7 @@ class UserServiceTest {
         when(repository.save(any())).thenReturn(user);
 
         UserUpdateRequest request = new UserUpdateRequest("Rafael Novo", null);
-        UserDTO result = service.update(request, "id-123");
+        UserResponse result = service.update(request, "id-123");
 
         assertThat(result).isNotNull();
         verify(repository).save(any(User.class));
@@ -156,11 +157,11 @@ class UserServiceTest {
     void update_deveAtualizarEmail_quandoNomeNulo() {
         User user = userStub();
         when(repository.findById("id-123")).thenReturn(Optional.of(user));
-        when(repository.findByEmail("novo@email.com")).thenReturn(null);
+        when(repository.findByEmail("novo@email.com")).thenReturn(Optional.empty());
         when(repository.save(any())).thenReturn(user);
 
         UserUpdateRequest request = new UserUpdateRequest(null, "novo@email.com");
-        UserDTO result = service.update(request, "id-123");
+        UserResponse result = service.update(request, "id-123");
 
         assertThat(result).isNotNull();
         verify(repository).save(any(User.class));
@@ -170,7 +171,7 @@ class UserServiceTest {
     void update_deveAtualizarNomeEEmail_quandoAmbosPreenchidos() {
         User user = userStub();
         when(repository.findById("id-123")).thenReturn(Optional.of(user));
-        when(repository.findByEmail("novo@email.com")).thenReturn(null);
+        when(repository.findByEmail("novo@email.com")).thenReturn(Optional.empty());
         when(repository.save(any())).thenReturn(user);
 
         UserUpdateRequest request = new UserUpdateRequest("Rafael Novo", "novo@email.com");
@@ -187,7 +188,7 @@ class UserServiceTest {
         User other = userStub();
         other.setId("outro-id");
         when(repository.findById("id-123")).thenReturn(Optional.of(user));
-        when(repository.findByEmail("ocupado@email.com")).thenReturn(other);
+        when(repository.findByEmail("ocupado@email.com")).thenReturn(Optional.of(other));
 
         assertThatThrownBy(() -> service.update(new UserUpdateRequest(null, "ocupado@email.com"), "id-123"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -205,25 +206,95 @@ class UserServiceTest {
                 .hasMessage("Usuario nao encontrado");
     }
 
-    // ---- delete ----
+    // ---- createActive ----
 
     @Test
-    void delete_deveInativarUsuario_quandoExiste() {
+    void createActive_deveCriarContaAtivaSemSenha_comCodigoDaSequence() {
+        when(repository.nextSequence()).thenReturn(7L);
+        when(repository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User created = service.createActive("Rafael", "rafael@gmail.com");
+
+        assertThat(created.getId()).isNotNull();
+        assertThat(created.getEmail()).isEqualTo("rafael@gmail.com");
+        assertThat(created.getUserCode()).isEqualTo("rafael#7");
+        assertThat(created.getStatus()).isEqualTo(RegistrationStatus.ATIVO);
+        assertThat(created.getPassword()).isNull();
+        verify(repository).save(created);
+    }
+
+    // ---- ensureActive ----
+
+    @Test
+    void ensureActive_naoDeveGravar_quandoContaJaEstaAtiva() {
+        User active = userStub();
+        active.setStatus(RegistrationStatus.ATIVO);
+
+        User result = service.ensureActive(active);
+
+        assertThat(result).isSameAs(active);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void ensureActive_deveAtivarEGravar_quandoContaPendente() {
+        User pending = userStub();
+        pending.setUpdatedAt(LocalDateTime.now().minusDays(1));
+        when(repository.save(pending)).thenReturn(pending);
+
+        User result = service.ensureActive(pending);
+
+        assertThat(result.getStatus()).isEqualTo(RegistrationStatus.ATIVO);
+        assertThat(result.getUpdatedAt()).isAfter(LocalDateTime.now().minusMinutes(1));
+        verify(repository).save(pending);
+    }
+
+    @Test
+    void ensureActive_deveReativar_quandoContaInativa() {
+        User inactive = userStub();
+        inactive.setStatus(RegistrationStatus.INATIVO);
+        when(repository.save(inactive)).thenReturn(inactive);
+
+        User result = service.ensureActive(inactive);
+
+        assertThat(result.getStatus()).isEqualTo(RegistrationStatus.ATIVO);
+        verify(repository).save(inactive);
+    }
+
+    // ---- activateIfPending ----
+
+    @Test
+    void activateIfPending_deveDelegarAoUpdateCondicional() {
+        when(repository.activateIfPending(eq("id-123"), any(LocalDateTime.class))).thenReturn(1);
+
+        int activated = service.activateIfPending("id-123");
+
+        assertThat(activated).isEqualTo(1);
+        verify(repository).activateIfPending(eq("id-123"), any(LocalDateTime.class));
+    }
+
+    // ---- deactivate ----
+
+    @Test
+    void deactivate_deveInativarUsuario_semMexerNoUpdatedAt() {
         User user = userStub();
+        LocalDateTime updatedAt = LocalDateTime.now().minusDays(1);
+        user.setUpdatedAt(updatedAt);
         when(repository.findById("id-123")).thenReturn(Optional.of(user));
         when(repository.save(any())).thenReturn(user);
 
-        service.delete("id-123");
+        service.deactivate("id-123");
 
         assertThat(user.getStatus()).isEqualTo(RegistrationStatus.INATIVO);
+        assertThat(user.getUpdatedAt()).isEqualTo(updatedAt);
         verify(repository).save(user);
     }
 
     @Test
-    void delete_deveLancarExcecao_quandoUsuarioNaoExiste() {
+    void deactivate_deveLancarExcecao_quandoUsuarioNaoExiste() {
         when(repository.findById("id-inexistente")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.delete("id-inexistente"))
+        assertThatThrownBy(() -> service.deactivate("id-inexistente"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Usuario nao encontrado");
     }

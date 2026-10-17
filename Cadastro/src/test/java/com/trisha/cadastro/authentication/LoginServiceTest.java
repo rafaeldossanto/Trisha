@@ -2,7 +2,7 @@ package com.trisha.cadastro.authentication;
 
 import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.User;
-import com.trisha.cadastro.account.UserRepository;
+import com.trisha.cadastro.account.UserService;
 import com.trisha.cadastro.authentication.dto.AuthenticationResponse;
 import com.trisha.cadastro.token.IssuedToken;
 import com.trisha.cadastro.token.TokenService;
@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,7 +34,7 @@ class LoginServiceTest {
     private static final String SENHA_HASH = new BCryptPasswordEncoder().encode("senha123");
 
     @Mock
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Mock
     private TokenService tokenService;
@@ -64,7 +65,7 @@ class LoginServiceTest {
     @Test
     void login_deveRetornarTokenEUsuario_quandoCredenciaisValidasEContaAtiva() {
         User user = userStub(RegistrationStatus.ATIVO);
-        when(userRepository.findByEmail("rafael@email.com")).thenReturn(user);
+        when(userService.findByEmail("rafael@email.com")).thenReturn(Optional.of(user));
         when(tokenService.issue(user)).thenReturn(new IssuedToken("token-jwt", 7200L));
 
         AuthenticationResponse response = service.login("rafael@email.com", "senha123");
@@ -76,7 +77,7 @@ class LoginServiceTest {
 
     @Test
     void login_deveFalhar_quandoEmailNaoExiste() {
-        when(userRepository.findByEmail("inexistente@email.com")).thenReturn(null);
+        when(userService.findByEmail("inexistente@email.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.login("inexistente@email.com", "senha123"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -87,8 +88,8 @@ class LoginServiceTest {
 
     @Test
     void login_deveFalhar_quandoSenhaIncorreta() {
-        when(userRepository.findByEmail("rafael@email.com"))
-                .thenReturn(userStub(RegistrationStatus.ATIVO));
+        when(userService.findByEmail("rafael@email.com"))
+                .thenReturn(Optional.of(userStub(RegistrationStatus.ATIVO)));
 
         assertThatThrownBy(() -> service.login("rafael@email.com", "senha-errada"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -101,7 +102,7 @@ class LoginServiceTest {
     void login_deveFalhar_quandoUsuarioSocialSemSenha() {
         User social = userStub(RegistrationStatus.ATIVO);
         social.setPassword(null);
-        when(userRepository.findByEmail("rafael@email.com")).thenReturn(social);
+        when(userService.findByEmail("rafael@email.com")).thenReturn(Optional.of(social));
 
         assertThatThrownBy(() -> service.login("rafael@email.com", "senha123"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -112,8 +113,8 @@ class LoginServiceTest {
 
     @Test
     void login_deveFalhar_quandoContaPendente() {
-        when(userRepository.findByEmail("rafael@email.com"))
-                .thenReturn(userStub(RegistrationStatus.PENDENTE));
+        when(userService.findByEmail("rafael@email.com"))
+                .thenReturn(Optional.of(userStub(RegistrationStatus.PENDENTE)));
 
         // Mesma mensagem dos outros casos: dizer "confirme seu email" revelaria
         // que o endereco esta cadastrado, permitindo enumerar a base.
@@ -127,9 +128,9 @@ class LoginServiceTest {
     @Test
     void login_naoDeveDistinguirEmailInexistenteDeContaPendente() {
         // Regressao anti-enumeracao: as duas respostas tem que ser identicas.
-        when(userRepository.findByEmail("naoexiste@email.com")).thenReturn(null);
-        when(userRepository.findByEmail("pendente@email.com"))
-                .thenReturn(userStub(RegistrationStatus.PENDENTE));
+        when(userService.findByEmail("naoexiste@email.com")).thenReturn(Optional.empty());
+        when(userService.findByEmail("pendente@email.com"))
+                .thenReturn(Optional.of(userStub(RegistrationStatus.PENDENTE)));
 
         String inexistente = catchThrowable(
                 () -> service.login("naoexiste@email.com", "senha123")).getMessage();
@@ -141,8 +142,8 @@ class LoginServiceTest {
 
     @Test
     void login_deveFalhar_quandoContaInativa() {
-        when(userRepository.findByEmail("rafael@email.com"))
-                .thenReturn(userStub(RegistrationStatus.INATIVO));
+        when(userService.findByEmail("rafael@email.com"))
+                .thenReturn(Optional.of(userStub(RegistrationStatus.INATIVO)));
 
         // Mesma mensagem de credencial invalida: nao revela o estado da conta.
         assertThatThrownBy(() -> service.login("rafael@email.com", "senha123"))
@@ -161,14 +162,14 @@ class LoginServiceTest {
                 .isInstanceOf(TooManyAttemptsException.class);
 
         // Nem toca o banco nem gera BCrypt/token: a trava corta antes.
-        verify(userRepository, never()).findByEmail(any());
+        verify(userService, never()).findByEmail(any());
         verify(tokenService, never()).issue(any());
     }
 
     @Test
     void login_deveRegistrarFalha_quandoSenhaIncorreta() {
-        when(userRepository.findByEmail("rafael@email.com"))
-                .thenReturn(userStub(RegistrationStatus.ATIVO));
+        when(userService.findByEmail("rafael@email.com"))
+                .thenReturn(Optional.of(userStub(RegistrationStatus.ATIVO)));
 
         assertThatThrownBy(() -> service.login("rafael@email.com", "senha-errada"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -179,7 +180,7 @@ class LoginServiceTest {
     @Test
     void login_deveZerarContador_quandoLoginBemSucedido() {
         User user = userStub(RegistrationStatus.ATIVO);
-        when(userRepository.findByEmail("rafael@email.com")).thenReturn(user);
+        when(userService.findByEmail("rafael@email.com")).thenReturn(Optional.of(user));
         when(tokenService.issue(user)).thenReturn(new IssuedToken("token-jwt", 7200L));
 
         service.login("rafael@email.com", "senha123");

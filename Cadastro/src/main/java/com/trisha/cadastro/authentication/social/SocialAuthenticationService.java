@@ -1,9 +1,7 @@
 package com.trisha.cadastro.authentication.social;
 
-import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.User;
-import com.trisha.cadastro.account.UserMapper;
-import com.trisha.cadastro.account.UserRepository;
+import com.trisha.cadastro.account.UserService;
 import com.trisha.cadastro.authentication.AuthenticationMapper;
 import com.trisha.cadastro.authentication.dto.AuthenticationResponse;
 import com.trisha.cadastro.token.IssuedToken;
@@ -16,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static java.util.Objects.isNull;
@@ -25,16 +24,16 @@ import static java.util.Objects.nonNull;
 @Slf4j
 public class SocialAuthenticationService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final LinkedAccountRepository linkedAccountRepository;
     private final TokenService tokenService;
     private final Map<AuthProvider, SocialTokenVerifier> verifiers;
 
-    public SocialAuthenticationService(UserRepository userRepository,
+    public SocialAuthenticationService(UserService userService,
                                        LinkedAccountRepository linkedAccountRepository,
                                        TokenService tokenService,
                                        List<SocialTokenVerifier> availableVerifiers) {
-        this.userRepository = userRepository;
+        this.userService = userService;
         this.linkedAccountRepository = linkedAccountRepository;
         this.tokenService = tokenService;
         this.verifiers = new EnumMap<>(AuthProvider.class);
@@ -51,32 +50,10 @@ public class SocialAuthenticationService {
                 .map(LinkedAccount::getUser)
                 .orElseGet(() -> resolveByEmailOrCreate(provider, data));
 
-        user = ensureActive(user);
+        user = userService.ensureActive(user);
 
         IssuedToken token = tokenService.issue(user);
         return AuthenticationMapper.toResponse(user, token);
-    }
-
-    /**
-     * Normaliza o status antes de emitir o token — o social nunca autentica uma
-     * conta que nao esteja ATIVA:
-     * - PENDENTE: o provedor ja confirmou o email, entao a conta e ativada
-     *   direto, sem exigir confirmacao nem aceite de termos (mesma convencao do
-     *   usuario criado direto pelo social). Sem isso RegistrationCleanupJob
-     *   desativaria a conta em uso ao fim do prazo de confirmacao.
-     * - INATIVO: conta desativada (prazo de confirmacao estourado ou delecao)
-     *   recuperada pelo login social, espelhando o reaproveitamento do create.
-     */
-    private User ensureActive(User user) {
-        if (RegistrationStatus.ATIVO.equals(user.getStatus())) {
-            return user;
-        }
-
-        user.setStatus(RegistrationStatus.ATIVO);
-        user.setUpdatedAt(LocalDateTime.now());
-        User saved = userRepository.save(user);
-        log.info("Usuario {} ativado no login social", saved.getId());
-        return saved;
     }
 
     private ProviderUserData verify(AuthProvider provider, String idToken) {
@@ -88,17 +65,15 @@ public class SocialAuthenticationService {
     }
 
     private User resolveByEmailOrCreate(AuthProvider provider, ProviderUserData data) {
-        User existing = nonNull(data.email()) ? userRepository.findByEmail(data.email()) : null;
-
-        User user = nonNull(existing) ? existing : createSocialUser(data);
+        User user = Optional.ofNullable(data.email())
+                .flatMap(userService::findByEmail)
+                .orElseGet(() -> createSocialUser(data));
         link(user, provider, data);
         return user;
     }
 
     private User createSocialUser(ProviderUserData data) {
-        Long sequence = userRepository.nextSequence();
-        User user = UserMapper.toEntitySocial(data, nameOrDefault(data), sequence);
-        User saved = userRepository.save(user);
+        User saved = userService.createActive(nameOrDefault(data), data.email());
         log.info("Usuario social criado: {} ({})", saved.getUserCode(), saved.getId());
         return saved;
     }

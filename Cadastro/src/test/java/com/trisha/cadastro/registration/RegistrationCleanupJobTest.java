@@ -49,8 +49,8 @@ class RegistrationCleanupJobTest {
 
         job.expirePendingRegistrations();
 
-        verify(userService).delete("id-1");
-        verify(userService).delete("id-2");
+        verify(userService).deactivate("id-1");
+        verify(userService).deactivate("id-2");
     }
 
     @Test
@@ -86,13 +86,13 @@ class RegistrationCleanupJobTest {
     void deveSeguirAposFalhaIsolada() {
         when(userRepository.findExpiredPendingIds(any())).thenReturn(List.of("id-1", "id-2", "id-3"));
         doThrow(new IllegalArgumentException("Usuario nao encontrado"))
-                .when(userService).delete("id-2");
+                .when(userService).deactivate("id-2");
 
         job.expirePendingRegistrations();
 
-        verify(userService).delete("id-1");
-        verify(userService).delete("id-2");
-        verify(userService).delete("id-3");
+        verify(userService).deactivate("id-1");
+        verify(userService).deactivate("id-2");
+        verify(userService).deactivate("id-3");
     }
 
     @Test
@@ -103,6 +103,6 @@ class RegistrationCleanupJobTest {
         job.expirePendingRegistrations();
         job.expirePendingRegistrations();
 
-        verify(userService, never()).delete(any());
+        verify(userService, never()).deactivate(any());
     }
 }

@@ -15,7 +15,7 @@ import java.util.List;
  * Cobra o prazo de confirmacao do cadastro: quem fica PENDENTE alem do limite e
  * desativado, liberando o email para uma nova tentativa.
  *
- * Nota: UserService.delete desativa (status INATIVO), nao apaga a linha — o
+ * Nota: UserService.deactivate desativa (status INATIVO), nao apaga a linha — o
  * mesmo comportamento de antes.
  *
  * Escala: com mais de uma instancia do Cadastro todas rodariam a varredura. Hoje
@@ -55,7 +55,7 @@ public class RegistrationCleanupJob {
      */
     private void expire(String userId) {
         try {
-            userService.delete(userId);
+            userService.deactivate(userId);
         } catch (Exception e) {
             log.error("Falha ao expirar o cadastro {}: {}", userId, e.getMessage());
         }

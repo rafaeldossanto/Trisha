@@ -1,7 +1,7 @@
 package com.trisha.cadastro.account;
 
 import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import com.trisha.cadastro.account.dto.UserUpdateRequest;
 import com.trisha.cadastro.registration.RegistrationService;
 import com.trisha.cadastro.shared.exception.ForbiddenException;
@@ -45,8 +45,8 @@ class UserControllerTest {
                 .build();
     }
 
-    private UserDTO userDTOStub() {
-        return UserDTO.builder()
+    private UserResponse userResponseStub() {
+        return UserResponse.builder()
                 .id(USER_ID)
                 .name("Rafael")
                 .email("rafael@email.com")
@@ -59,9 +59,9 @@ class UserControllerTest {
 
     @Test
     void create_deveRetornarDTO_quandoSucesso() {
-        when(registrationService.register(any())).thenReturn(userDTOStub());
+        when(registrationService.register(any())).thenReturn(userResponseStub());
 
-        UserDTO result = controller.create(
+        UserResponse result = controller.create(
                 new UserCreateRequest("Rafael", "rafael@email.com", "senha123")
         );
 
@@ -72,9 +72,9 @@ class UserControllerTest {
 
     @Test
     void getById_deveRetornarDTO_quandoUsuarioExiste() {
-        when(userService.getById(USER_ID)).thenReturn(userDTOStub());
+        when(userService.getById(USER_ID)).thenReturn(userResponseStub());
 
-        UserDTO result = controller.getById(tokenOf(USER_ID), USER_ID);
+        UserResponse result = controller.getById(tokenOf(USER_ID), USER_ID);
 
         assertThat(result).isNotNull();
         assertThat(result.name()).isEqualTo("Rafael");
@@ -82,9 +82,9 @@ class UserControllerTest {
 
     @Test
     void update_deveRetornarDTO_quandoSucesso() {
-        when(userService.update(any(), eq(USER_ID))).thenReturn(userDTOStub());
+        when(userService.update(any(), eq(USER_ID))).thenReturn(userResponseStub());
 
-        UserDTO result = controller.update(
+        UserResponse result = controller.update(
                 tokenOf(USER_ID), new UserUpdateRequest("Rafael Atualizado", null), USER_ID
         );
 
@@ -93,12 +93,12 @@ class UserControllerTest {
     }
 
     @Test
-    void delete_deveChamarService_quandoSucesso() {
-        doNothing().when(userService).delete(USER_ID);
+    void delete_deveDesativarAConta_quandoSucesso() {
+        doNothing().when(userService).deactivate(USER_ID);
 
         controller.delete(tokenOf(USER_ID), USER_ID);
 
-        verify(userService).delete(USER_ID);
+        verify(userService).deactivate(USER_ID);
     }
 
     // --- IDOR: o token de um usuario nao opera a conta de outro -------------

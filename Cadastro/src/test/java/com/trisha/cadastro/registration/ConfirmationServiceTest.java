@@ -3,6 +3,7 @@ package com.trisha.cadastro.registration;
 import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.User;
 import com.trisha.cadastro.account.UserRepository;
+import com.trisha.cadastro.account.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +33,8 @@ class ConfirmationServiceTest {
     private TermsAcceptanceRepository termsRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private ConfirmationService service;
@@ -65,7 +67,7 @@ class ConfirmationServiceTest {
     }
 
     private void verificaQueNaoAtivou() {
-        verify(userRepository, never()).activateIfPending(any(), any());
+        verify(userService, never()).activateIfPending(any());
     }
 
     // ---- confirmEmail ----
@@ -82,14 +84,14 @@ class ConfirmationServiceTest {
             when(confirmationRepository.findByToken("token-abc")).thenReturn(Optional.of(confirmation));
             emailConfirmado(true);
             termosAceitos(true);
-            when(userRepository.activateIfPending(eq("id-123"), any())).thenReturn(1);
+            when(userService.activateIfPending("id-123")).thenReturn(1);
 
             service.confirmEmail("token-abc");
 
             assertThat(confirmation.getStatus()).isEqualTo(ConfirmationStatus.CONFIRMADO);
             assertThat(confirmation.getConfirmedAt()).isNotNull();
             verify(confirmationRepository).save(confirmation);
-            verify(userRepository).activateIfPending(eq("id-123"), any());
+            verify(userService).activateIfPending("id-123");
         }
 
         @Test
@@ -196,7 +198,7 @@ class ConfirmationServiceTest {
             when(userRepository.findById("id-123")).thenReturn(Optional.of(userStub()));
             emailConfirmado(true);
             termosAceitos(true);
-            when(userRepository.activateIfPending(eq("id-123"), any())).thenReturn(1);
+            when(userService.activateIfPending("id-123")).thenReturn(1);
 
             service.acceptTerms("id-123");
 
@@ -207,7 +209,7 @@ class ConfirmationServiceTest {
             assertThat(saved.getAccepted()).isTrue();
             assertThat(saved.getAcceptedAt()).isNotNull();
 
-            verify(userRepository).activateIfPending(eq("id-123"), any());
+            verify(userService).activateIfPending("id-123");
         }
 
         @Test
@@ -254,11 +256,11 @@ class ConfirmationServiceTest {
             when(userRepository.findById("id-123")).thenReturn(Optional.of(userStub()));
             emailConfirmado(true);
             termosAceitos(true);
-            when(userRepository.activateIfPending(eq("id-123"), any())).thenReturn(0);
+            when(userService.activateIfPending("id-123")).thenReturn(0);
 
             service.acceptTerms("id-123");
 
-            verify(userRepository).activateIfPending(eq("id-123"), any());
+            verify(userService).activateIfPending("id-123");
         }
     }
 }

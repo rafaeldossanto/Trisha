@@ -7,7 +7,7 @@ import lombok.Builder;
 import java.time.LocalDateTime;
 
 @Builder
-public record UserDTO(
+public record UserResponse(
         String id,
         @JsonProperty("nome") String name,
         String email,

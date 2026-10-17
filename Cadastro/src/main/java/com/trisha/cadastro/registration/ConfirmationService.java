@@ -3,6 +3,7 @@ package com.trisha.cadastro.registration;
 import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.User;
 import com.trisha.cadastro.account.UserRepository;
+import com.trisha.cadastro.account.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class ConfirmationService {
     private final EmailConfirmationRepository confirmationRepository;
     private final TermsAcceptanceRepository termsRepository;
     private final UserRepository userRepository;
+    private final UserService userService;
 
     @Transactional
     public void confirmEmail(String token) {
@@ -113,7 +115,7 @@ public class ConfirmationService {
             return;
         }
 
-        int ativados = userRepository.activateIfPending(userId, LocalDateTime.now());
+        int ativados = userService.activateIfPending(userId);
         if (ativados > 0) {
             log.info("Cadastro concluido, conta ativada: {}", userId);
         } else {

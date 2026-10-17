@@ -2,7 +2,7 @@ package com.trisha.cadastro.registration;
 
 import com.trisha.cadastro.account.UserService;
 import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -27,8 +27,8 @@ public class RegistrationService {
     private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public UserDTO register(UserCreateRequest request) {
-        UserDTO user = userService.create(request);
+    public UserResponse register(UserCreateRequest request) {
+        UserResponse user = userService.create(request);
 
         eventPublisher.publishEvent(new UserRegisteredEvent(user.id(), user.email()));
 

@@ -1,8 +1,7 @@
 package com.trisha.cadastro.authentication;
 
-import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.User;
-import com.trisha.cadastro.account.UserRepository;
+import com.trisha.cadastro.account.UserService;
 import com.trisha.cadastro.authentication.dto.AuthenticationResponse;
 import com.trisha.cadastro.token.IssuedToken;
 import com.trisha.cadastro.token.TokenService;
@@ -32,7 +31,7 @@ import static java.util.Objects.isNull;
 @Slf4j
 public class LoginService {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
@@ -45,10 +44,9 @@ public class LoginService {
 
         loginAttemptService.assertNotBlocked(email);
 
-        User user = userRepository.findByEmail(email);
+        User user = userService.findByEmail(email).orElse(null);
         if (isNull(user) || isNull(user.getPassword()) || !passwordEncoder.matches(password, user.getPassword())
-                || RegistrationStatus.INATIVO.equals(user.getStatus())
-                || RegistrationStatus.PENDENTE.equals(user.getStatus())) {
+                || !user.isActive()) {
             // A conta PENDENTE entra aqui de proposito: informar "confirme seu
             // email" confirmaria ao atacante que o endereco esta cadastrado.
             loginAttemptService.recordFailure(email);

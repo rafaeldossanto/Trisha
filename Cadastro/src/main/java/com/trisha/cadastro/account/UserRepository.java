@@ -8,11 +8,12 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
 
-    User findByEmail(String email);
+    Optional<User> findByEmail(String email);
 
     @Query(value = "SELECT nextval('usuario_codigo_seq')", nativeQuery = true)
     Long nextSequence();
@@ -39,7 +40,7 @@ public interface UserRepository extends JpaRepository<User, String> {
      * Cadastros pendentes que estouraram o prazo de confirmacao.
      *
      * O corte usa 'updatedAt', nao 'createdAt': um cadastro reaproveitado por
-     * conta INATIVA (UserMapper.mapToReactivated) volta para PENDENTE mantendo
+     * conta INATIVA (User.reopen) volta para PENDENTE mantendo
      * a data de criacao original, e por createdAt seria expirado no primeiro
      * ciclo apos o recadastro.
      */

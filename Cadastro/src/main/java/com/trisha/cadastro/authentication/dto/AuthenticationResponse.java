@@ -1,7 +1,7 @@
 package com.trisha.cadastro.authentication.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import lombok.Builder;
 
 /**
@@ -10,7 +10,7 @@ import lombok.Builder;
  */
 @Builder
 public record AuthenticationResponse(
-        @JsonProperty("usuario") UserDTO user,
+        @JsonProperty("usuario") UserResponse user,
         String accessToken,
         @JsonProperty("expiresInSegundos") long expiresInSeconds
 ) {

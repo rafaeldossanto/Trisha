@@ -1,7 +1,7 @@
 package com.trisha.cadastro.account;
 
 import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import com.trisha.cadastro.account.dto.UserUpdateRequest;
 import com.trisha.cadastro.registration.RegistrationService;
 import com.trisha.cadastro.shared.exception.ForbiddenException;
@@ -29,30 +29,31 @@ public class UserController {
     private final RegistrationService registrationService;
 
     @PostMapping
-    public UserDTO create(@RequestBody @Valid UserCreateRequest request) {
+    public UserResponse create(@RequestBody @Valid UserCreateRequest request) {
         return registrationService.register(request);
     }
 
     @PutMapping("/{id}")
-    public UserDTO update(@AuthenticationPrincipal Jwt jwt,
-                          @RequestBody @Valid UserUpdateRequest request,
-                          @PathVariable String id) {
+    public UserResponse update(@AuthenticationPrincipal Jwt jwt,
+                               @RequestBody @Valid UserUpdateRequest request,
+                               @PathVariable String id) {
         ensureSelf(jwt, id);
         return userService.update(request, id);
     }
 
     @GetMapping("/{id}")
-    public UserDTO getById(@AuthenticationPrincipal Jwt jwt,
-                           @PathVariable String id) {
+    public UserResponse getById(@AuthenticationPrincipal Jwt jwt,
+                                @PathVariable String id) {
         ensureSelf(jwt, id);
         return userService.getById(id);
     }
 
+    /** Desativa a conta (status INATIVO); a linha nao e apagada. */
     @DeleteMapping("/{id}")
     public void delete(@AuthenticationPrincipal Jwt jwt,
                        @PathVariable String id) {
         ensureSelf(jwt, id);
-        userService.delete(id);
+        userService.deactivate(id);
     }
 
     /**

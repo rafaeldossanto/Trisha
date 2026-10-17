@@ -3,7 +3,7 @@ package com.trisha.cadastro.registration;
 import com.trisha.cadastro.account.RegistrationStatus;
 import com.trisha.cadastro.account.UserService;
 import com.trisha.cadastro.account.dto.UserCreateRequest;
-import com.trisha.cadastro.account.dto.UserDTO;
+import com.trisha.cadastro.account.dto.UserResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,8 +35,8 @@ class RegistrationServiceTest {
     @InjectMocks
     private RegistrationService service;
 
-    private UserDTO userDTOStub() {
-        return UserDTO.builder()
+    private UserResponse userResponseStub() {
+        return UserResponse.builder()
                 .id("id-123")
                 .name("Rafael")
                 .email("rafael@email.com")
@@ -54,9 +54,9 @@ class RegistrationServiceTest {
     @Test
     @DisplayName("cria o usuario e publica o evento que dispara o email de confirmacao")
     void register_deveCriarUsuarioEPublicarEvento() {
-        when(userService.create(any())).thenReturn(userDTOStub());
+        when(userService.create(any())).thenReturn(userResponseStub());
 
-        UserDTO result = service.register(createRequestStub());
+        UserResponse result = service.register(createRequestStub());
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo("id-123");

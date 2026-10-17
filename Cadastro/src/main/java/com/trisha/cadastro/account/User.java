@@ -58,4 +58,35 @@ public class User {
             traceId = TraceContext.current();
         }
     }
+
+    // --- transicoes de status (quem grava e o UserService) ------------------
+
+    public boolean isActive() {
+        return RegistrationStatus.ATIVO.equals(status);
+    }
+
+    public void activate(LocalDateTime now) {
+        status = RegistrationStatus.ATIVO;
+        updatedAt = now;
+    }
+
+    /**
+     * Nao mexe no updatedAt de proposito: e o comportamento que a desativacao
+     * sempre teve (rota DELETE e prazo de confirmacao estourado).
+     */
+    public void deactivate() {
+        status = RegistrationStatus.INATIVO;
+    }
+
+    /**
+     * Recadastro sobre uma conta INATIVA: reaproveita o registro (id, codigo e
+     * data de criacao) e volta para PENDENTE. O updatedAt recomeca o prazo de
+     * confirmacao, que o RegistrationCleanupJob cobra a partir dele.
+     */
+    public void reopen(String name, String encodedPassword) {
+        this.name = name;
+        this.password = encodedPassword;
+        this.status = RegistrationStatus.PENDENTE;
+        this.updatedAt = LocalDateTime.now();
+    }
 }
