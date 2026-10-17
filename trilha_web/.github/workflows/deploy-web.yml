@@ -1,0 +1,66 @@
+name: Deploy web (Firebase Hosting)
+
+# Publica o front no Firebase Hosting. Manual por enquanto (mesmo espirito do
+# deploy da trilha-infra): o build de producao so faz sentido depois que a API
+# estiver no ar no dominio configurado em .env.prod.
+#
+# Secrets necessarios (Settings > Secrets and variables > Actions):
+#   FIREBASE_SERVICE_ACCOUNT - JSON da service account com papel
+#                              "Firebase Hosting Admin" (Console do Firebase >
+#                              Configuracoes do projeto > Contas de servico)
+#   FIREBASE_PROJECT_ID      - id do projeto no Firebase
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build e publica
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confere se os secrets do Firebase existem
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::Secrets do Firebase nao configurados. Crie FIREBASE_SERVICE_ACCOUNT e FIREBASE_PROJECT_ID em Settings > Secrets para ativar o deploy."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - name: Flutter 3.44.2
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      # O dotenv e asset do bundle: o valor entra no build e nao muda depois.
+      # Sem esta troca o site publicado chamaria o localhost de quem o abrisse.
+      - name: Aplica a configuracao de producao
+        run: |
+          if grep -q 'seudominio.com' .env.prod; then
+            echo "::error::.env.prod ainda esta com o dominio de exemplo. Preencha com o dominio real da API antes de publicar."
+            exit 1
+          fi
+          cp .env.prod .env
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      - run: flutter test
+
+      - run: flutter build web --release
+
+      - name: Publica no Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          channelId: live
