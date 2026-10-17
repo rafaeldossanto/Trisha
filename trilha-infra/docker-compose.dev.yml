@@ -1,0 +1,43 @@
+# Compose de DESENVOLVIMENTO do Trilha — so a infraestrutura de apoio, com as
+# portas publicadas no localhost. Os servicos Spring rodam fora (IntelliJ /
+# gradlew bootRun) e o Postgres continua NATIVO na 5432 (fora deste compose).
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Sobe: Redis (cache/lockout/pubsub), MinIO (storage de midia + console web) e
+# Mosquitto (telemetria GPS, anonimo).
+
+name: trilha-dev
+
+services:
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      # Credenciais de DEV — as mesmas esperadas pelos application.yaml locais
+      # (MINIO_ACCESS_KEY/MINIO_SECRET_KEY). Console web em http://localhost:9001.
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-dev-data:/data
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.dev.conf:/mosquitto/config/mosquitto.conf:ro
+
+volumes:
+  minio-dev-data:
