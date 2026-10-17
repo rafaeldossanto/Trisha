@@ -138,7 +138,7 @@ class ActivationServiceTest {
         }
 
         @Test
-        @DisplayName("marca EXPIRADO e falha quando o token venceu")
+        @DisplayName("falha sem gravar nada quando o token venceu")
         void deveFalharTokenExpirado() {
             EmailConfirmation confirmation =
                     confirmationStub(ConfirmationStatus.PENDENTE, LocalDateTime.now().minusMinutes(1));
@@ -148,8 +148,8 @@ class ActivationServiceTest {
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("Token expirado");
 
-            assertThat(confirmation.getStatus()).isEqualTo(ConfirmationStatus.EXPIRADO);
-            verify(confirmationRepository).save(confirmation);
+            assertThat(confirmation.getStatus()).isEqualTo(ConfirmationStatus.PENDENTE);
+            verify(confirmationRepository, never()).save(any());
             verificaQueNaoAtivou();
         }
 

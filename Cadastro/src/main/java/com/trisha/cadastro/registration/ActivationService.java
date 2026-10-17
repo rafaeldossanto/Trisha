@@ -43,9 +43,10 @@ public class ActivationService {
             throw new IllegalArgumentException("Email ja confirmado");
         }
 
+        // Nao grava EXPIRADO aqui: a excecao logo abaixo faria rollback do
+        // @Transactional e o status nunca chegaria ao banco. O vencimento sai
+        // do expiresAt.
         if (confirmation.getExpiresAt().isBefore(LocalDateTime.now())) {
-            confirmation.setStatus(ConfirmationStatus.EXPIRADO);
-            confirmationRepository.save(confirmation);
             throw new IllegalArgumentException("Token expirado");
         }
 
