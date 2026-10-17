@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: Cadastro
+
+  datasource:
+    # Banco COMPARTILHADO com o servico APP. O Cadastro e o dono da tabela
+    # 'usuario'; o APP a le como view read-only (entidade User @Immutable). Com
+    # bancos separados a copia do lado do APP nasce vazia e a busca de usuario,
+    # o seguir por codigo e o nome do autor no feed param de funcionar.
+    url: jdbc:postgresql://localhost:5432/trisha
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # Redis: contador de falhas de login por conta (lockout temporario). Lettuce
+  # conecta sob demanda; se o Redis estiver fora, o lockout adota fail-open.
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  jpa:
+    hibernate:
+      # Em dev, o Hibernate cria/atualiza as tabelas. Em producao, troque para
+      # 'validate' e deixe o schema sob controle exclusivo do Flyway (gerando o
+      # baseline a partir do schema real). As migrations versionadas (ex.: a
+      # sequence do codigoUsuario) sao sempre aplicadas pelo Flyway.
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  # Envio do email de confirmacao. Funciona com qualquer SMTP (Gmail, Mailtrap,
+  # Brevo...). Preencha MAIL_USERNAME/MAIL_PASSWORD com as credenciais do provedor.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8080
+
+# traceId (correlacao de requisicoes) recebido da borda no header X-Trace-Id.
+logging:
+  pattern:
+    level: "%5p [trace:%X{traceId:-}]"
+
+# Login social: client-id (audience) esperado no ID token de cada provedor.
+# Sem segredos aqui — a validacao usa o JWKS publico do provedor. O client-id
+# do app deve bater com o aud do token, senao o token e rejeitado.
+auth:
+  social:
+    google:
+      client-id: ${GOOGLE_CLIENT_ID:}
+    apple:
+      client-id: ${APPLE_CLIENT_ID:}
+
+# Email de confirmacao de cadastro: remetente exibido e URL base do link que o
+# usuario clica para validar a conta. Em producao, aponte confirmacao-url para a
+# URL publica (BFF/front), nao para o localhost do servico.
+app:
+  email:
+    remetente: ${MAIL_FROM:nao-responda@trilha.com}
+    confirmacao-url: ${EMAIL_CONFIRMACAO_URL:http://localhost:8080/auth/confirmar-email}
+  # Prazo para confirmar o email e aceitar os termos. Estourado o prazo,
+  # RegistrationCleanupJob desativa a conta (status INATIVO) e o email volta a
+  # ficar disponivel para um novo cadastro. Deve acompanhar o prazo do token de
+  # confirmacao (EmailService: expiresAt = envio + 10 min).
+  cadastro:
+    expiracao-minutos: ${CADASTRO_EXPIRACAO_MINUTOS:10}
+    intervalo-limpeza-ms: ${CADASTRO_INTERVALO_LIMPEZA_MS:60000}
+  # Token de sessao emitido pela aplicacao (assinado com a chave RSA local; os
+  # demais servicos validam pelo JWKS publicado em /oauth2/jwks).
+  jwt:
+    issuer: ${JWT_ISSUER:http://localhost:8080}
+    ttl-segundos: ${JWT_TTL_SEGUNDOS:7200}
+    # Producao: aponte para o PEM (PKCS#8) da chave privada RSA (ex.: segredo montado
+    # pelo Kubernetes ou Secret Manager). Dev: deixe vazio para usar a chave bundled
+    # em classpath:keys/dev-private-key.pem (nao e um segredo real).
+    rsa-private-key-path: ${JWT_RSA_PRIVATE_KEY_PATH:}
+
+# Bloqueio temporario de login apos varias falhas seguidas para a mesma conta.
+login-lockout:
+  enabled: ${LOGIN_LOCKOUT_ENABLED:true}
+  max-attempts: ${LOGIN_LOCKOUT_MAX_ATTEMPTS:5}
+  block-seconds: ${LOGIN_LOCKOUT_BLOCK_SECONDS:900}

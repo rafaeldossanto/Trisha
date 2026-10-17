@@ -1,0 +1,14 @@
+-- Rede de seguranca para a sequence do codigoUsuario.
+--
+-- A V1 ja cria esta sequence, mas com `baseline-on-migrate: true` num banco que
+-- ja existia (schema criado pelo ddl-auto antes do Flyway entrar) o Flyway grava
+-- a baseline na versao 1 e PULA a V1 — o banco ficaria sem a sequence e todo
+-- cadastro estouraria em `nextval('usuario_codigo_seq')`.
+--
+-- Essa garantia antes vivia num `data.sql` com `spring.sql.init.mode: always` +
+-- `defer-datasource-initialization: true`. A combinacao criava um ciclo de beans
+-- (entityManagerFactory -> flyway -> entityManagerFactory) que derrubava o
+-- contexto no Spring Boot 4. Aqui a mesma garantia sai pelo mecanismo correto:
+-- versionada, idempotente e acima da baseline, entao roda tambem nos bancos
+-- antigos.
+CREATE SEQUENCE IF NOT EXISTS usuario_codigo_seq START WITH 1 INCREMENT BY 1;

@@ -1,0 +1,94 @@
+plugins {
+	id 'java'
+	id 'war'
+	id 'org.springframework.boot' version '4.0.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.trail'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	testcontainersVersion = '1.20.4'
+}
+
+// SourceSet dedicado para testes de integracao (src/integrationTest/java).
+sourceSets {
+	integrationTest {
+		java.srcDir file('src/integrationTest/java')
+		resources.srcDir file('src/integrationTest/resources')
+		compileClasspath += sourceSets.main.output + sourceSets.test.output
+		runtimeClasspath += sourceSets.main.output + sourceSets.test.output
+	}
+}
+
+configurations {
+	integrationTestImplementation.extendsFrom testImplementation
+	integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// Contador de falhas de login por conta (lockout temporario) com TTL nativo.
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	// Envio do email de confirmacao de cadastro (SMTP via JavaMailSender).
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	// Valida ID tokens (JWT) de provedores sociais contra o JWKS publico deles.
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	// Migrations versionadas do schema (sequence do codigoUsuario, etc).
+	// Boot 4 modularizou o Flyway: sem este starter a auto-config nao roda as
+	// migrations (mesmo bug que o loc teve) — flyway-core sozinho nao basta.
+	implementation 'org.springframework.boot:spring-boot-flyway'
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
+	runtimeOnly 'org.postgresql:postgresql'
+	runtimeOnly 'net.logstash.logback:logstash-logback-encoder:8.0'
+	annotationProcessor 'org.projectlombok:lombok'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat-runtime'
+
+	// Testes de unidade
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testCompileOnly 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// Testes de integracao (Testcontainers Postgres)
+	integrationTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	integrationTestImplementation "org.testcontainers:junit-jupiter:${testcontainersVersion}"
+	integrationTestImplementation "org.testcontainers:postgresql:${testcontainersVersion}"
+}
+
+// 'test' roda SOMENTE testes de unidade e exclui qualquer @Tag("integracao").
+tasks.named('test') {
+	useJUnitPlatform {
+		excludeTags 'integracao'
+	}
+}
+
+// 'integrationTest' roda os @SpringBootTest com Postgres real via Testcontainers.
+tasks.register('integrationTest', Test) {
+	description = 'Executa os testes de integracao (Testcontainers).'
+	group = 'verification'
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+	useJUnitPlatform()
+	shouldRunAfter tasks.named('test')
+}
+
+tasks.named('check') {
+	dependsOn tasks.named('integrationTest')
+}

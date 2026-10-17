@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: 'postgres:16'
+    environment:
+      # Banco compartilhado com o servico APP (ver application.yaml).
+      - 'POSTGRES_DB=trisha'
+      - 'POSTGRES_PASSWORD=secret'
+      - 'POSTGRES_USER=myuser'
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Contador de falhas de login por conta (lockout temporario).
+  redis:
+    image: 'redis:7-alpine'
+    ports:
+      - '6379:6379'
+
+volumes:
+  postgres_data:
