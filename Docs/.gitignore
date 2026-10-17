@@ -1,0 +1,7 @@
+# Obsidian: estado de UI local (abas abertas, layout de paineis) — muda a
+# cada clique e nao tem valor versionado.
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Lixeira do cofre.
+.trash/
