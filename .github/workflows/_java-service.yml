@@ -1,21 +1,35 @@
-name: CI
+name: Servico Java (reutilizavel)
+
+# Corpo do CI dos 5 servicos Spring Boot. Antes do monorepo era o ci.yml de
+# cada repo, 5 copias que so diferiam no nome da imagem; agora cada servico tem
+# um workflow curto (app.yml, cadastro.yml, ...) que chama este passando a pasta
+# e a imagem.
+#
+# Testes rodam em push na main e na dev e em PR. A imagem so e publicada em push
+# na main: a dev e onde o trabalho acontece, a main e o que vai para producao.
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      pasta:
+        description: "Pasta do servico no monorepo (ex.: APP)"
+        required: true
+        type: string
+      imagem:
+        description: "Nome da imagem no ghcr.io (ex.: trilha-app)"
+        required: true
+        type: string
 
 permissions:
   contents: read
-
-env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/trilha-app
 
 jobs:
   build-test:
     name: Build e testes
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.pasta }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,28 +46,30 @@ jobs:
       - name: Build + testes (unitarios e integracao)
         run: ./gradlew build
 
+      # Os paths de upload/download sao relativos a raiz do repo, nao ao
+      # working-directory (que so vale para os steps 'run').
       - name: Relatorios de teste (em caso de falha)
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
-          path: build/reports/tests/
+          name: test-reports-${{ inputs.imagem }}
+          path: ${{ inputs.pasta }}/build/reports/tests/
 
       # O -plain.jar fica de fora para o COPY do Dockerfile casar com um unico jar.
       - name: Guarda o boot jar para a imagem
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: boot-jar
+          name: boot-jar-${{ inputs.imagem }}
           path: |
-            build/libs/*.jar
-            !build/libs/*-plain.jar
+            ${{ inputs.pasta }}/build/libs/*.jar
+            !${{ inputs.pasta }}/build/libs/*-plain.jar
           retention-days: 1
 
   docker-image:
     name: Publica imagem no ghcr.io
     needs: build-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -64,8 +80,8 @@ jobs:
       - name: Baixa o boot jar do job de build
         uses: actions/download-artifact@v4
         with:
-          name: boot-jar
-          path: build/libs
+          name: boot-jar-${{ inputs.imagem }}
+          path: ${{ inputs.pasta }}/build/libs
 
       - name: Login no ghcr.io
         uses: docker/login-action@v3
@@ -78,7 +94,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ github.repository_owner }}/${{ inputs.imagem }}
           tags: |
             type=raw,value=latest
             type=sha
@@ -86,7 +102,7 @@ jobs:
       - name: Build e push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ inputs.pasta }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

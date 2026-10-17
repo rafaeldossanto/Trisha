@@ -1,0 +1,34 @@
+name: CI · APP
+
+# CI do servico APP. O corpo esta em _java-service.yml; aqui fica so o
+# gatilho, filtrado pela pasta para um commit em outro servico nao rodar
+# (nem republicar) este.
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'APP/**'
+      - '.github/workflows/app.yml'
+      - '.github/workflows/_java-service.yml'
+  pull_request:
+    paths:
+      - 'APP/**'
+      - '.github/workflows/app.yml'
+      - '.github/workflows/_java-service.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/_java-service.yml
+    with:
+      pasta: APP
+      imagem: trilha-app
+    # packages: write e para o job que publica a imagem no ghcr.io; o
+    # workflow chamado nao pode ter mais permissao que quem chama.
+    permissions:
+      contents: read
+      packages: write

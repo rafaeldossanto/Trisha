@@ -1,0 +1,77 @@
+name: CI · trilha_app
+
+# App mobile (Flutter). Filtrado pela pasta: so roda quando o app muda.
+# O APK de debug so e gerado em push na main.
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'trilha_app/**'
+      - '.github/workflows/mobile.yml'
+  pull_request:
+    paths:
+      - 'trilha_app/**'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: trilha_app
+
+jobs:
+  analyze-test:
+    name: Analyze e testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Flutter 3.44.2
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      - run: flutter test
+
+  build-apk:
+    name: APK debug (artefato)
+    needs: analyze-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # O build Android do Flutter exige JDK 21 (mesma versao usada localmente).
+      - name: JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Flutter 3.44.2
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build apk --debug
+
+      # Path relativo a raiz do repo: o working-directory so vale para 'run'.
+      - name: Publica o APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: trilha-app-debug-apk
+          path: trilha_app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

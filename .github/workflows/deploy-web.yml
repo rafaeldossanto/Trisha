@@ -1,8 +1,10 @@
 name: Deploy web (Firebase Hosting)
 
 # Publica o front no Firebase Hosting. Manual por enquanto (mesmo espirito do
-# deploy da trilha-infra): o build de producao so faz sentido depois que a API
-# estiver no ar no dominio configurado em .env.prod.
+# deploy da VPS em deploy.yml): o build de producao so faz sentido depois que a
+# API estiver no ar no dominio configurado em trilha_web/.env.prod.
+#
+# So publica a main: producao nunca sai da dev.
 #
 # Secrets necessarios (Settings > Secrets and variables > Actions):
 #   FIREBASE_SERVICE_ACCOUNT - JSON da service account com papel
@@ -16,12 +18,25 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: trilha_web
+
 jobs:
   deploy:
     name: Build e publica
     runs-on: ubuntu-latest
     steps:
+      # Antes do checkout: os dois guards nao precisam do codigo.
+      - name: So a main vai para producao
+        if: github.ref != 'refs/heads/main'
+        working-directory: .
+        run: |
+          echo "::error::Deploy disparado a partir de '${{ github.ref_name }}'. Producao so sai da main — rode o workflow escolhendo a branch main."
+          exit 1
+
       - name: Confere se os secrets do Firebase existem
+        working-directory: .
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
@@ -57,6 +72,8 @@ jobs:
 
       - run: flutter build web --release
 
+      # entryPoint aponta para onde esta o firebase.json; o "public" dele
+      # (build/web) e resolvido a partir dali.
       - name: Publica no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -64,3 +81,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
           channelId: live
+          entryPoint: trilha_web

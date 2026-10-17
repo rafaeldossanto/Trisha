@@ -8,6 +8,8 @@ name: Deploy
 #   VPS_USER     - usuario SSH (ex.: deploy)
 #   VPS_SSH_KEY  - chave privada SSH (conteudo do PEM, sem passphrase)
 #
+# So deploya a main: producao nunca sai da dev.
+#
 # ANTES DE SUBIR QUALQUER COISA o workflow confere o CI de cada servico alvo
 # (step "Confere o CI dos servicos alvo"). Sem isso o deploy mentia: quando o CI
 # quebra, o job que publica a imagem nao roda, a tag :latest continua apontando
@@ -26,12 +28,21 @@ on:
 
 permissions:
   contents: read
+  # O guard le os runs de CI deste mesmo repo. No monorepo o GITHUB_TOKEN
+  # basta — antes cada servico era um repo e a consulta tinha que ser anonima.
+  actions: read
 
 jobs:
   deploy:
     name: Deploy na VPS
     runs-on: ubuntu-latest
     steps:
+      - name: So a main vai para producao
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Deploy disparado a partir de '${{ github.ref_name }}'. Producao so sai da main — rode o workflow escolhendo a branch main."
+          exit 1
+
       - name: Confere se os secrets da VPS existem
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -41,32 +52,31 @@ jobs:
             exit 1
           fi
 
-      # Roda antes do checkout: se o CI de algum servico nao passou, o job morre
-      # aqui e nada — nem o compose — chega perto da VPS.
+      # Historico completo: o guard compara o commit do ultimo CI de cada
+      # servico com o HEAD da main.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Se o CI de algum servico nao passou, o job morre aqui e nada — nem o
+      # compose — chega perto da VPS.
       - name: Confere o CI dos servicos alvo
         shell: bash
         env:
           SERVICO: ${{ inputs.servico }}
-          OWNER: ${{ github.repository_owner }}
-          # OPCIONAL. Sem ele a consulta e anonima: 60 req/h por IP do runner, que
-          # e compartilhado entre projetos. O guard gasta 2 req por servico, mas se
-          # o limite estourar por causa de vizinho ele BLOQUEIA o deploy (falha
-          # fechada). Se isso acontecer, crie o secret GH_API_TOKEN com um PAT de
-          # escopo public_repo e o limite sobe para 5000/h.
-          # O GITHUB_TOKEN padrao NAO serve: ele so tem escopo neste repo.
-          GH_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Sem 'set -e' de proposito: quando o alvo e 'todos', queremos listar
           # TODOS os servicos reprovados de uma vez, e nao morrer no primeiro.
           set -uo pipefail
 
-          # Servico do compose -> repo dono no GitHub. Conferido pelo IMAGE_NAME
-          # do ci.yml de cada repo. 'bff' e o TrishaBff (era 'bfff'); existe um
-          # rafaeldossanto/BFF de outro projeto, entao o nome aqui importa.
-          declare -A REPOS=(
+          # Servico do compose -> pasta no monorepo. O workflow de CI de cada um
+          # e .github/workflows/<servico>.yml, que publica a imagem pelo
+          # _java-service.yml.
+          declare -A PASTAS=(
             [cadastro]=Cadastro
             [app]=APP
-            [bff]=TrishaBff
+            [bff]=bff
             [loc]=loc
             [midia]=midia
           )
@@ -84,14 +94,8 @@ jobs:
             ALVOS="$SERVICO"
           fi
 
-          api() {
-            if [ -n "${GH_API_TOKEN:-}" ]; then
-              curl -sS -m 20 -H "Accept: application/vnd.github+json" \
-                   -H "Authorization: Bearer $GH_API_TOKEN" "$1"
-            else
-              curl -sS -m 20 -H "Accept: application/vnd.github+json" "$1"
-            fi
-          }
+          head_sha=$(git rev-parse HEAD)
+          curto="${head_sha:0:7}"
 
           falhou=0
           for svc in $ALVOS; do
@@ -102,32 +106,26 @@ jobs:
               continue
             fi
 
-            repo="${REPOS[$svc]:-}"
-            if [ -z "$repo" ]; then
-              echo "::error::Servico '$svc' nao esta no mapa de repos deste workflow."
+            pasta="${PASTAS[$svc]:-}"
+            if [ -z "$pasta" ]; then
+              echo "::error::Servico '$svc' nao esta no mapa de pastas deste workflow."
               falhou=1
               continue
             fi
+            workflow="$svc.yml"
 
-            base="https://api.github.com/repos/$OWNER/$repo"
-
-            head_json=$(api "$base/commits/master") || head_json=""
-            head_sha=$(jq -r '.sha // empty' <<<"$head_json" 2>/dev/null) || head_sha=""
-            if [ -z "$head_sha" ]; then
-              motivo=$(jq -r '.message // "sem resposta da API"' <<<"$head_json" 2>/dev/null) || motivo="sem resposta da API"
-              echo "::error::Nao foi possivel confirmar o CI de $repo: falha ao ler o HEAD da master ($motivo). Na duvida o deploy e bloqueado."
+            # event=push porque so o run de push publica imagem: o job
+            # docker-image do _java-service.yml tem 'if: github.event_name == push'.
+            # Um run de workflow_dispatch pode estar verde sem ter publicado nada.
+            erro_api="$RUNNER_TEMP/gh-erro.txt"
+            if ! run=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$workflow/runs?branch=main&event=push&per_page=1" \
+                         --jq '.workflow_runs[0] // empty' 2>"$erro_api"); then
+              echo "::error::Nao foi possivel consultar o CI de $pasta ($workflow): $(cat "$erro_api"). Na duvida o deploy e bloqueado."
               falhou=1
               continue
             fi
-            curto="${head_sha:0:7}"
-
-            # event=push porque so o run de push publica imagem: o job docker-image
-            # do ci.yml tem 'if: github.event_name == push'. Um run de
-            # workflow_dispatch pode estar verde sem ter publicado nada.
-            runs_json=$(api "$base/actions/workflows/ci.yml/runs?branch=master&event=push&per_page=1") || runs_json=""
-            run=$(jq -c '.workflow_runs[0] // empty' <<<"$runs_json" 2>/dev/null) || run=""
             if [ -z "$run" ]; then
-              echo "::error::CI de $repo: nenhum run do ci.yml encontrado na master (commit $curto). A imagem :latest nao pode ser confirmada — deploy bloqueado."
+              echo "::error::CI de $pasta: nenhum run de push do $workflow na main. A imagem :latest nao pode ser confirmada — deploy bloqueado."
               falhou=1
               continue
             fi
@@ -137,24 +135,33 @@ jobs:
             conclusion=$(jq -r '.conclusion // ""' <<<"$run")
             url=$(jq -r '.html_url // empty' <<<"$run")
 
-            if [ "$run_sha" != "$head_sha" ]; then
-              echo "::error::CI de $repo ainda nao rodou para o commit $curto (ultimo run e do ${run_sha:0:7}). A imagem :latest ainda nao e a da master — espere o CI terminar."
+            # Com o filtro de paths, o CI do servico so roda quando a pasta dele
+            # muda: o ultimo run pode ser de um commit anterior ao HEAD e mesmo
+            # assim ser a :latest certa. O que importa e nada do servico ter
+            # mudado depois dele.
+            if ! git cat-file -e "$run_sha^{commit}" 2>/dev/null; then
+              echo "::error::CI de $pasta: o commit do ultimo run (${run_sha:0:7}) nao esta no historico da main. Deploy bloqueado."
+              falhou=1
+              continue
+            fi
+            if ! git diff --quiet "$run_sha" "$head_sha" -- "$pasta" ".github/workflows/$workflow" .github/workflows/_java-service.yml; then
+              echo "::error::$pasta mudou depois do ultimo CI (run em ${run_sha:0:7}, main em $curto). A :latest ainda nao tem essas mudancas — espere o $workflow rodar."
               falhou=1
               continue
             fi
             if [ "$status" != "completed" ]; then
-              echo "::error::CI de $repo ainda esta rodando no commit $curto (status: $status). Espere terminar: $url"
+              echo "::error::CI de $pasta ainda esta rodando no commit ${run_sha:0:7} (status: $status). Espere terminar: $url"
               falhou=1
               continue
             fi
             if [ "$conclusion" != "success" ]; then
-              echo "::error::CI de $repo QUEBROU no commit $curto (conclusao: $conclusion). A imagem :latest ainda e a do commit ANTERIOR — deployar agora nao subiria esta versao. Corrija o CI antes: $url"
+              echo "::error::CI de $pasta QUEBROU no commit ${run_sha:0:7} (conclusao: $conclusion). A imagem :latest ainda e a do commit ANTERIOR — deployar agora nao subiria esta versao. Corrija o CI antes: $url"
               falhou=1
               continue
             fi
 
-            echo "OK -- $svc ($repo) commit $curto"
-            echo "$svc|$repo|$head_sha" >> "$REGISTRO"
+            echo "OK -- $svc ($pasta) imagem do commit ${run_sha:0:7}"
+            echo "$svc|$pasta|$run_sha" >> "$REGISTRO"
           done
 
           if [ "$falhou" -ne 0 ]; then
@@ -162,17 +169,18 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v4
-
+      # strip_components tira o 'trilha-infra/' do caminho: na VPS os arquivos
+      # continuam direto em ~/trilha, como antes do monorepo.
       - name: Copia compose e configs para a VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "docker-compose.prod.yml,Caddyfile,postgres-init/*,mosquitto/mosquitto.conf,mosquitto/acl.example"
+          source: "trilha-infra/docker-compose.prod.yml,trilha-infra/Caddyfile,trilha-infra/postgres-init/*,trilha-infra/mosquitto/mosquitto.conf,trilha-infra/mosquitto/acl.example"
           # mosquitto.dev.conf e docker-compose.dev.yml ficam de fora: sao locais.
           target: ~/trilha
+          strip_components: 1
 
       - name: Pull e sobe os containers
         uses: appleboy/ssh-action@v1.0.3
@@ -200,15 +208,14 @@ jobs:
             # '|| true' para um erro aqui nao marcar como falho um deploy que deu certo.
             docker compose -f docker-compose.prod.yml images || true
 
-      # O guard acima garante que a :latest puxada e a do HEAD da master, entao o
-      # sha que ele resolveu e o que subiu. Este resumo e o unico registro de qual
-      # versao esta em producao — o compose so diz ':latest'.
+      # O guard acima resolveu, para cada servico, o commit cuja imagem :latest
+      # foi puxada. Este resumo e o unico registro de qual versao esta em
+      # producao — o compose so diz ':latest'.
       - name: Resumo do deploy
         if: success()
         shell: bash
         env:
           SERVICO: ${{ inputs.servico }}
-          OWNER: ${{ github.repository_owner }}
         run: |
           set -uo pipefail
           REGISTRO="$RUNNER_TEMP/deploy-shas.txt"
@@ -217,14 +224,14 @@ jobs:
             echo
             echo "Alvo do workflow: \`$SERVICO\`"
             echo
-            echo "| Servico | Commit | Repo |"
+            echo "| Servico | Commit da imagem | Pasta |"
             echo "|---|---|---|"
-            while IFS='|' read -r svc repo sha; do
+            while IFS='|' read -r svc pasta sha; do
               [ -z "${svc:-}" ] && continue
-              if [ "$repo" = "-" ]; then
+              if [ "$pasta" = "-" ]; then
                 echo "| $svc | — | \`$sha\` (imagem de terceiro) |"
               else
-                echo "| $svc | [\`${sha:0:7}\`](https://github.com/$OWNER/$repo/commit/$sha) | $repo |"
+                echo "| $svc | [\`${sha:0:7}\`](https://github.com/$GITHUB_REPOSITORY/commit/$sha) | \`$pasta/\` |"
               fi
             done < "$REGISTRO"
           } >> "$GITHUB_STEP_SUMMARY"

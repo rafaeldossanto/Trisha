@@ -1,13 +1,26 @@
-name: CI
+name: CI · trilha_web
+
+# App web (Flutter web). Filtrado pela pasta: so roda quando o front web muda.
+# O build de release so e gerado em push na main.
 
 on:
   push:
-    branches: [master]
+    branches: [main, dev]
+    paths:
+      - 'trilha_web/**'
+      - '.github/workflows/web.yml'
   pull_request:
+    paths:
+      - 'trilha_web/**'
+      - '.github/workflows/web.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    working-directory: trilha_web
 
 jobs:
   analyze-test:
@@ -29,20 +42,13 @@ jobs:
 
       - run: flutter test
 
-  build-apk:
-    name: APK debug (artefato)
+  build-web:
+    name: Build web (artefato)
     needs: analyze-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # O build Android do Flutter exige JDK 21 (mesma versao usada localmente).
-      - name: JDK 21 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
 
       - name: Flutter 3.44.2
         uses: subosito/flutter-action@v2
@@ -53,11 +59,12 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build apk --debug
+      - run: flutter build web --release
 
-      - name: Publica o APK como artefato
+      # Path relativo a raiz do repo: o working-directory so vale para 'run'.
+      - name: Publica o build web como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: trilha-app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: trilha-web-release
+          path: trilha_web/build/web
           retention-days: 14
