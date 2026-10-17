@@ -1,0 +1,90 @@
+spring:
+  application:
+    name: bff
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  # Resource server da borda: valida o Bearer da app (JWKS do Cadastro) e o propaga downstream.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${JWKS_URI:http://localhost:8080/oauth2/jwks}
+
+server:
+  port: 8090
+  # Atras de um reverse proxy (Caddy/Traefik/nginx), troque para 'framework' para
+  # que o rate limit chaveie pelo IP real do cliente (X-Forwarded-For) e nao pelo
+  # IP do proxy. Mantenha 'none' enquanto o BFF estiver exposto direto, senao um
+  # cliente pode forjar o X-Forwarded-For e escapar da trava.
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:none}
+
+# traceId (correlacao de requisicoes) gerado na borda e propagado downstream.
+logging:
+  pattern:
+    level: "%5p [trace:%X{traceId:-}]"
+
+# Origens liberadas no CORS (front web). Dev: localhost. Em prod, defina
+# CORS_ALLOWED_ORIGINS com o dominio real do front (separar por virgula).
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
+
+# Trava anti-flood/brute-force por IP na borda (janela fixa no Redis). Endpoints
+# de autenticacao tem teto mais baixo. Ajuste os tetos por ambiente via env.
+rate-limit:
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  default-limit: ${RATE_LIMIT_DEFAULT:600}
+  auth-limit: ${RATE_LIMIT_AUTH:30}
+  window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+
+servicos:
+  cadastro: ${SERVICO_CADASTRO_URL:http://localhost:8080}
+  app: ${SERVICO_APP_URL:http://localhost:8081}
+  localizacao: ${SERVICO_LOCALIZACAO_URL:http://localhost:8082}
+  midia: ${SERVICO_MIDIA_URL:http://localhost:8083}
+
+cache:
+  ttl-segundos: ${CACHE_TTL_SEGUNDOS:60}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      downstream:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+    instances:
+      app: { base-config: downstream }
+      cadastro: { base-config: downstream }
+      localizacao: { base-config: downstream }
+      midia: { base-config: downstream }
+  retry:
+    configs:
+      downstream:
+        max-attempts: 2
+        wait-duration: 200ms
+        retry-exceptions:
+          - java.io.IOException
+          - org.springframework.web.client.ResourceAccessException
+    instances:
+      app: { base-config: downstream }
+      cadastro: { base-config: downstream }
+      localizacao: { base-config: downstream }
+      midia: { base-config: downstream }
