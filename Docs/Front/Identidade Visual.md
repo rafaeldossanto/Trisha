@@ -1,12 +1,12 @@
 ---
 tags: [front, design]
-atualizado: 2026-07-25
+atualizado: 2026-10-17
 ---
 
 # Identidade Visual
 
 Tema escuro compartilhado entre [[App Mobile]] e [[App Web]], definido em
-`core/theme/app_theme.dart` nos dois repos.
+`core/theme/app_theme.dart` nos dois apps.
 
 ## Paleta
 
@@ -27,7 +27,7 @@ A marca exibida é **Trisha** (os identificadores no código continuam `Trilha` 
 ver [[Decisões Deliberadas]]).
 
 **Fonte: Yellowtail**, script de pincel, licença SIL OFL, **embarcada** em
-`assets/fonts/Yellowtail-Regular.ttf` (~34 KB) nos dois repos. Escolhida em
+`assets/fonts/Yellowtail-Regular.ttf` (~34 KB) nos dois apps. Escolhida em
 25/07/2026 entre 10 candidatas apresentadas visualmente; substituiu um
 `fontFamily: 'serif'` itálico genérico.
 
@@ -60,7 +60,7 @@ Picos de montanha desenhados em `CustomPaint` (`_PeakLogo`), traço branco sem b
 > Dentro de uma `Column` com `CrossAxisAlignment.stretch`, o `CustomPaint` recebia a
 > largura inteira e o painter — que escala por `size.width / 24` — desenhava o logo
 > por cima da tela toda (1352×56 em vez de 56×56). Corrigido envolvendo em `Center`,
-> com teste de regressão nos dois repos.
+> com teste de regressão nos dois apps.
 
 ## Componentes recorrentes
 

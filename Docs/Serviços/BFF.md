@@ -2,8 +2,9 @@
 tags: [servico, backend, borda]
 porta: 8090
 banco: nenhum
-repo: bfff
-atualizado: 2026-07-25
+repo: Trisha
+pasta: bff
+atualizado: 2026-10-17
 ---
 
 # BFF
@@ -13,9 +14,10 @@ atualizado: 2026-07-25
 *Backend for Frontend*: a única superfície pública do sistema. Agrega respostas de
 vários serviços, protege a borda e adapta os contratos ao que a tela precisa.
 
-> [!note] O repositório chama-se `bfff`
-> Com três `f`. Erro de digitação na criação, preservado. E o remote local chama-se
-> `main`, não `origin`.
+> [!note] Repositório antigo: `bfff`, depois `TrishaBff`
+> Até o monorepo (17/10/2026) o BFF tinha repositório próprio, criado como `bfff`
+> (três `f`, erro de digitação) e renomeado para `TrishaBff`. Existe um
+> `rafaeldossanto/BFF` de outro projeto, que não tem relação com este.
 
 ## Prefixos
 

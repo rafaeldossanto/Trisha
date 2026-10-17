@@ -2,8 +2,9 @@
 tags: [servico, backend, dominio]
 porta: 8081
 banco: trilha_app
-repo: APP
-atualizado: 2026-07-25
+repo: Trisha
+pasta: APP
+atualizado: 2026-10-17
 ---
 
 # Serviço APP

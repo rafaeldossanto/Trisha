@@ -1,12 +1,13 @@
 ---
 tags: [infra, deploy]
-repo: TrishaInfra
-atualizado: 2026-07-25
+repo: Trisha
+pasta: trilha-infra
+atualizado: 2026-10-17
 ---
 
 # Deploy em Produção
 
-Repositório `trilha-infra` → `TrishaInfra`. **Estado: dormente** — nenhuma VPS
+Pasta `trilha-infra/` do monorepo (era o repositório `TrishaInfra` até 17/10/2026). **Estado: dormente** — nenhuma VPS
 contratada. O compose e o workflow estão prontos, aguardando servidor.
 
 ## Topologia de rede (defesa em profundidade)

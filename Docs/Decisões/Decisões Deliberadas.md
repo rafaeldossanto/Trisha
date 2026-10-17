@@ -1,6 +1,6 @@
 ---
 tags: [decisao]
-atualizado: 2026-08-01
+atualizado: 2026-10-17
 ---
 
 # Decisões Deliberadas
@@ -21,9 +21,27 @@ Cada serviço tem seu banco (isolamento lógico real — ninguém lê a tabela d
 mas todos na mesma instância Postgres. Instâncias separadas viriam quando a carga
 pedir. Ver [[Escalabilidade]].
 
-### `trilha_web` como repositório separado
+### `trilha_web` como projeto separado do mobile
 Decisão de 25/07/2026: a V1 web sai primeiro, sem arrastar o [[App Mobile]]. O
 `lib/` foi copiado, e a duplicação é assumida — mesmo espírito do `GeoUtils`.
+Nasceu como repositório próprio. Com o monorepo virou uma pasta irmã de
+`trilha_app`, e a duplicação continua: estar no mesmo repo não obriga a
+compartilhar código.
+
+### Monorepo, mas sem build agregador
+Decisão de 17/10/2026: os nove repositórios viraram um só (`rafaeldossanto/Trisha`)
+para que uma feature que atravessa serviço, [[BFF]] e front caiba num commit só, e
+para haver um único lugar de CI, de histórico e de documentação.
+
+O que **não** mudou é a independência: não existe `settings.gradle` na raiz, cada
+serviço mantém o próprio `gradlew`, o próprio CI (filtrado pela pasta) e a própria
+imagem. Um build agregador acoplaria o ciclo de vida que o `GeoUtils` duplicado
+existe para proteger. Ver [[CI e CD]].
+
+O histórico entrou **sem reescrita** (merge de cada repo após um commit de
+renomeação para a pasta). Reescrever com `filter-repo` deixaria o `git log` de
+arquivos com nome repetido mais limpo, mas trocaria todo SHA, e os SHAs antigos
+são citados na [[Linha do Tempo]] e em mensagens de commit.
 
 ### Sem fila entre domínios
 Comunicação entre serviços é HTTP síncrono. O acoplamento é assumido e controlado

@@ -1,6 +1,6 @@
 ---
 tags: [historico]
-atualizado: 2026-08-01
+atualizado: 2026-10-17
 ---
 
 # Linha do Tempo
@@ -116,10 +116,24 @@ Achado no caminho: filtrar a expiração por `createdAt` teria matado todo recad
 de conta inativa em 60 segundos, porque o reaproveitamento preserva a data de
 criação. O corte usa `updatedAt`.
 
+## 17/10 — monorepo
+
+Os nove repositórios (cinco serviços, os dois fronts, a infra e este cofre)
+viraram o monorepo `rafaeldossanto/Trisha`, com histórico completo e sem
+reescrita: os SHAs desta linha do tempo continuam válidos lá. A pasta local
+`Work/Trisha` não mudou de lugar, só ganhou um `.git` na raiz.
+
+Junto vieram as branches **`main`** (principal: publica imagem e aceita deploy) e
+**`dev`** (trabalho do dia a dia). O CI saiu de dentro de cada pasta para a raiz,
+porque o Actions só lê `.github/workflows/` dali. Os cinco `ci.yml` idênticos dos
+serviços viraram um workflow reutilizável, cada um filtrado pela própria pasta.
+O guard do deploy passou a comparar a pasta com o último run verde em vez de
+exigir o run no HEAD. Ver [[CI e CD]] e [[Decisões Deliberadas]].
+
 ## Pendências abertas
 
 - Sem VPS; deploy dormente ([[Deploy em Produção]])
 - Sem TLS ([[Segurança]])
 - Front sem telas de cadastro/recuperação ([[Autenticação e Identidade]])
-- `integrationTest` (Testcontainers) nunca executado ([[CI e CD]])
+- Repositórios antigos ainda ativos no GitHub: arquivar apontando para o monorepo
 - Roadmap: gamificação, trilhas offline, alerta SOS, login social real

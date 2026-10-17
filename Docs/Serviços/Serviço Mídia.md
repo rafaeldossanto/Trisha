@@ -2,8 +2,9 @@
 tags: [servico, backend]
 porta: 8083
 banco: trilha_midia
-repo: midia
-atualizado: 2026-07-25
+repo: Trisha
+pasta: midia
+atualizado: 2026-10-17
 ---
 
 # Serviço Mídia

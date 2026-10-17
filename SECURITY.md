@@ -11,7 +11,7 @@ usuários até a correção subir.
 
 Use um destes canais privados:
 
-1. **GitHub Security Advisories** — na aba *Security* do repositório afetado,
+1. **GitHub Security Advisories** — na aba *Security* do repositório `rafaeldossanto/Trisha`,
    em *Report a vulnerability*. É o caminho preferido: fica registrado e permite
    discussão privada.
 2. **E-mail** — rafael.santoss2802@gmail.com com o assunto `[SEGURANCA] Trisha`.

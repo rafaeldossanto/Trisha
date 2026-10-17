@@ -1,12 +1,13 @@
 ---
 tags: [front, flutter, mobile]
-repo: frontMobile
-atualizado: 2026-07-30
+repo: Trisha
+pasta: trilha_app
+atualizado: 2026-10-17
 ---
 
 # App Mobile
 
-**Flutter 3.44.2 · pasta `trilha_app` · repo `frontMobile` · Android apenas**
+**Flutter 3.44.2 · pasta `trilha_app` · Android apenas**
 
 O cliente original. Só a plataforma `android/` é gerada — não há iOS, web nem
 desktop aqui (para web, ver [[App Web]]).

@@ -1,6 +1,6 @@
 ---
 tags: [moc, trilha]
-atualizado: 2026-07-25
+atualizado: 2026-10-17
 ---
 
 # Trilha (Trisha)
@@ -54,22 +54,28 @@ continuam `Trilha`/`trilha` (ver [[Identidade Visual]]).
 - [[Linha do Tempo]] — histórico das grandes rodadas de trabalho
 - [[Glossário]] — vocabulário do domínio
 
-## Repositórios
+## Repositório
 
-Cada serviço tem repositório próprio no GitHub (`rafaeldossanto`):
+Desde 17/10/2026 tudo vive no monorepo **`rafaeldossanto/Trisha`**, e este cofre é
+a pasta `Docs/` dele. Cada pasta continua um projeto independente, com o próprio
+build e o próprio CI (ver [[Decisões Deliberadas]] e [[CI e CD]]).
 
-| Pasta local | Repositório | Notas |
-|---|---|---|
-| `Cadastro` | `Cadastro` | |
-| `APP` | `APP` | |
-| `loc` | `loc` | |
-| `midia` | `midia` | |
-| `bff` | `bfff` | três `f` — erro de digitação preservado |
-| `trilha_app` | `frontMobile` | |
-| `trilha_web` | `TrishaWeb` | |
-| `trilha-infra` | `TrishaInfra` | |
+Branches: **`main`** é a principal (só ela publica imagem e aceita deploy);
+**`dev`** é onde o trabalho acontece e chega na `main` por merge.
 
-> [!warning] Remotes com nomes diferentes
-> Em `bff`, `loc` e `midia` o remote local chama-se **`main`**, não `origin`
-> (`git push main master`). Nos demais é `origin`. Detalhe herdado da criação
-> dos repos, fácil de esbarrar.
+| Pasta | Repositório antigo (até 17/10/2026) |
+|---|---|
+| `Cadastro` | `Cadastro` |
+| `APP` | `APP` |
+| `loc` | `loc` |
+| `midia` | `midia` |
+| `bff` | `TrishaBff` (nasceu `bfff`) |
+| `trilha_app` | `frontMobile` |
+| `trilha_web` | `TrishaWeb` |
+| `trilha-infra` | `TrishaInfra` |
+| `Docs` | `TrishaDocs` |
+
+> [!note] Histórico preservado sem reescrita
+> Os nove repositórios entraram por merge. Todo SHA citado neste cofre (na
+> [[Linha do Tempo]], por exemplo) continua válido no monorepo: `git show cbb7afd`
+> funciona de qualquer pasta.

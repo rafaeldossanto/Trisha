@@ -1,12 +1,12 @@
 ---
 tags: [arquitetura]
-atualizado: 2026-07-25
+atualizado: 2026-10-17
 ---
 
 # Visão Geral da Arquitetura
 
 Cinco microserviços Spring Boot atrás de um **Backend for Frontend**. Cada serviço
-tem repositório, banco e ciclo de vida próprios; o front nunca fala com eles
+tem pasta no monorepo, banco, CI e ciclo de vida próprios; o front nunca fala com eles
 diretamente — só com o [[BFF]].
 
 ```

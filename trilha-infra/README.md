@@ -18,40 +18,49 @@ O cadastro por e-mail nao depende mais de broker externo: confirmacao, aceite de
 termos e prazo de expiracao sao resolvidos no proprio Postgres. O Zeebe/Camunda
 saiu em 01/08/2026 — ver `Docs/Decisoes/Remocao do Camunda.md` no cofre.
 
-**Estado atual: DORMENTE.** Nenhuma VPS contratada; o pipeline de cada
-servico ja publica imagens no ghcr.io a cada merge na master, e este repo
+**Estado atual: DORMENTE.** Nenhuma VPS contratada; o CI de cada servico ja
+publica imagens no ghcr.io a cada push na `main` do monorepo, e esta pasta
 deixa o deploy pronto para quando existir servidor.
+
+Os workflows nao ficam aqui: o GitHub Actions so le `.github/workflows/` na
+raiz do repo. O deploy e o `.github/workflows/deploy.yml` do monorepo.
 
 ## Arquitetura do deploy
 
 ```
-push na master (cada repo) ──> CI: testes ──> imagem ghcr.io/rafaeldossanto/trilha-<svc>:latest
-                                                        │
-deploy.yml (clique manual) ──> guard de CI ──> SSH na VPS ──> compose pull + up -d ◄┘
-                                    │
-                                    └─ CI vermelho/incompleto: bloqueia, nada sai daqui
+push na main (pasta do servico) ──> CI: testes ──> imagem ghcr.io/rafaeldossanto/trilha-<svc>:latest
+                                                             │
+deploy.yml (clique manual, so na main) ──> guard de CI ──> SSH na VPS ──> compose pull + up -d ◄┘
+                                               │
+                                               └─ CI vermelho/incompleto: bloqueia, nada sai daqui
 ```
 
 O **guard de CI** existe porque o deploy mentia. Quando o CI de um servico
 quebra, o job que publica a imagem nao roda e a tag `:latest` continua apontando
 para o commit anterior — o `compose pull` re-subia a versao velha e o workflow
 terminava **verde**, como se a correcao tivesse ido para producao. Antes de
-tocar no servidor, o deploy agora confere na API do GitHub o ultimo run de
-`push` do `ci.yml` na master de cada servico alvo e bloqueia se ele quebrou,
-ainda esta rodando, ou nem existe para o commit atual. Na duvida (API fora, rate
-limit) ele **bloqueia**: falha fechada.
+tocar no servidor, o deploy confere na API do GitHub o ultimo run de `push` na
+`main` do workflow de cada servico alvo (`app.yml`, `cadastro.yml`, `loc.yml`,
+`midia.yml`, `bff.yml`) e bloqueia se ele quebrou, ainda esta rodando, nao
+existe, ou se a pasta do servico mudou depois dele.
+
+Esse ultimo criterio veio com o monorepo. O CI de cada servico e filtrado pela
+pasta: um commit que so mexe no `APP/` nao roda o do `loc/`. Entao o ultimo run
+do loc pode ser de um commit anterior ao HEAD e mesmo assim ser a `:latest`
+certa. O que importa e nada do `loc/` ter mudado desde aquele run. Na duvida
+(API fora, run de commit fora da main) ele **bloqueia**: falha fechada.
 
 Ao final, o Step Summary do run lista qual commit de cada servico subiu — e como
 o compose so diz `:latest`, esse resumo e hoje o unico registro de qual versao
 esta em producao.
 
-> O mapa servico -> repo vive no proprio `deploy.yml`. O BFF e o repo
-> **`TrishaBff`**; existe um `rafaeldossanto/BFF` de outro projeto, e o GitHub
-> resolve nome de repo sem diferenciar maiuscula — um mapa desatualizado
-> validaria o CI do projeto errado e liberaria deploy quebrado.
+> O mapa servico -> pasta vive no proprio `deploy.yml`. Antes do monorepo era
+> um mapa servico -> repo, e um nome errado validava o CI do projeto errado
+> (existe um `rafaeldossanto/BFF` de outro projeto). Agora a consulta e sempre
+> neste repo, com o `GITHUB_TOKEN` dele, sem o limite da API anonima.
 
-O front web nao vive aqui: ele e publicado no **Firebase Hosting** a partir do
-repo `TrishaWeb` (workflow `Deploy web`). Esta stack serve so a API.
+O front web nao vive aqui: ele e publicado no **Firebase Hosting** a partir de
+`trilha_web/` (workflow `Deploy web`). Esta stack serve so a API.
 
 - Quem recebe trafego externo e o **Caddy** (80/443), que faz TLS automatico e
   roteia por path. Nenhum servico publica porta — nem o BFF. A unica outra porta
@@ -123,11 +132,12 @@ repo `TrishaWeb` (workflow `Deploy web`). Esta stack serve so a API.
    - preencher `MQTT_USERNAME`/`MQTT_PASSWORD` no `.env` com **as mesmas** credenciais
      do `passwd` acima — o broker de prod recusa conexao anonima;
    - preencher `CORS_ALLOWED_ORIGINS` com a origem publica do front no Firebase.
-6. **Secrets no GitHub** (neste repo, Settings > Secrets and variables > Actions):
+6. **Secrets no GitHub** (no repo `Trisha`, Settings > Secrets and variables > Actions):
    `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`.
-7. **Primeiro deploy**: aba Actions > Deploy > Run workflow (`todos`).
-8. **Front web**: no repo `TrishaWeb`, preencher o dominio da API em `.env.prod`
-   e rodar o workflow `Deploy web` (precisa dos secrets `FIREBASE_SERVICE_ACCOUNT`
+7. **Primeiro deploy**: aba Actions > Deploy > Run workflow, branch `main`
+   (`todos`). Disparado de outra branch, ele recusa.
+8. **Front web**: preencher o dominio da API em `trilha_web/.env.prod` e rodar o
+   workflow `Deploy web` na `main` (precisa dos secrets `FIREBASE_SERVICE_ACCOUNT`
    e `FIREBASE_PROJECT_ID`).
 
 ### Conferencia do primeiro boot
@@ -143,8 +153,8 @@ docker compose -f docker-compose.prod.yml logs cadastro app | grep -i -E "flyway
 
 ## Sobre as imagens
 
-Cada repo de servico publica `ghcr.io/rafaeldossanto/trilha-<svc>` com as
-tags `latest` e `sha-<commit>`. Para fixar uma versao no compose, troque a
+O CI de cada servico publica `ghcr.io/rafaeldossanto/trilha-<svc>` com as
+tags `latest` e `sha-<commit>`, so em push na `main`. Para fixar uma versao no compose, troque a
 tag `latest` pelo `sha-...` desejado (rollback = apontar para o sha anterior
 e rodar o deploy de novo).
 
@@ -152,3 +162,8 @@ e rodar o deploy de novo).
 > imagem, va em Packages > (imagem) > Package settings e de acesso de
 > leitura a VPS — ou deixe publico, ou gere um PAT `read:packages` para o
 > `docker login ghcr.io` na VPS.
+
+> Imagem que ja existia antes do monorepo continua ligada ao repo antigo (o
+> `trilha-app` ao `APP`, e assim por diante), e o `GITHUB_TOKEN` do `Trisha` leva
+> 403 ao tentar publicar nela. Em Packages > (imagem) > Package settings >
+> Manage Actions access, adicione o repo `Trisha` com papel **Write**.

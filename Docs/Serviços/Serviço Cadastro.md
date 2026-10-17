@@ -2,8 +2,9 @@
 tags: [servico, backend]
 porta: 8080
 banco: trilha_cadastro
-repo: Cadastro
-atualizado: 2026-08-01
+repo: Trisha
+pasta: Cadastro
+atualizado: 2026-10-17
 ---
 
 # Serviço Cadastro

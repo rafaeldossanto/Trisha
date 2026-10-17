@@ -2,8 +2,9 @@
 tags: [servico, backend, geo]
 porta: 8082
 banco: trilha_localizacao
-repo: loc
-atualizado: 2026-07-25
+repo: Trisha
+pasta: loc
+atualizado: 2026-10-17
 ---
 
 # Serviço Localização

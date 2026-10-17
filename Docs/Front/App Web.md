@@ -1,14 +1,15 @@
 ---
 tags: [front, flutter, web]
-repo: TrishaWeb
-atualizado: 2026-07-25
+repo: Trisha
+pasta: trilha_web
+atualizado: 2026-10-17
 ---
 
 # App Web
 
-**Flutter 3.44.2 · pasta `trilha_web` · repo `TrishaWeb` · web apenas**
+**Flutter 3.44.2 · pasta `trilha_web` · web apenas**
 
-Criado em 25/07/2026 como **repositório separado** do [[App Mobile]] — decisão
+Criado em 25/07/2026 como **projeto separado** do [[App Mobile]] (repositório próprio, `TrishaWeb`, até o monorepo de 17/10/2026) — decisão
 explícita, para a V1 web sair primeiro sem arrastar o mobile. O `lib/` foi copiado
 e adaptado; a duplicação é assumida (ver [[Decisões Deliberadas]]).
 

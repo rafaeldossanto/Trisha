@@ -46,11 +46,12 @@ Artefato em `build/web/` (estatico).
 1. Preencher o dominio real da API em `.env.prod` (o mesmo `API_DOMAIN` do
    `.env` da `trilha-infra`). As tres URLs apontam para o mesmo host: o Caddy
    roteia por path (`/bff` → BFF, `/arquivo` → Midia, `/ws-localizacao` → loc).
-2. Criar os secrets no GitHub (Settings > Secrets and variables > Actions):
+2. Criar os secrets no repo `Trisha` do GitHub (Settings > Secrets and variables > Actions):
    - `FIREBASE_SERVICE_ACCOUNT` — JSON da service account com papel *Firebase
      Hosting Admin* (Console do Firebase > Configuracoes do projeto > Contas de servico)
    - `FIREBASE_PROJECT_ID` — id do projeto
-3. Aba **Actions > Deploy web > Run workflow**.
+3. Aba **Actions > Deploy web > Run workflow**, na branch `main` (de outra
+   branch ele recusa).
 
 O dominio publicado (custom ou o `*.web.app` do projeto) precisa estar em
 `CORS_ALLOWED_ORIGINS` no `.env` da `trilha-infra`, senao o browser bloqueia as
