@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
  * POST /usuario nao espera o SMTP.
  *
  * O restante do cadastro nao passa por aqui: confirmacao de email e aceite de
- * termos sao conduzidos por ConfirmationService, e o prazo de confirmacao por
+ * termos sao conduzidos por ActivationService, e o prazo de confirmacao por
  * RegistrationCleanupJob.
  */
 @Service

@@ -23,7 +23,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ConfirmationService {
+public class ActivationService {
 
     private final EmailConfirmationRepository confirmationRepository;
     private final TermsAcceptanceRepository termsRepository;

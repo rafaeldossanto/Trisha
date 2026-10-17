@@ -12,24 +12,24 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ConfirmationController {
 
-    private final ConfirmationService confirmationService;
-    private final EmailService emailService;
+    private final ActivationService activationService;
+    private final ConfirmationEmailService confirmationEmailService;
 
     @GetMapping("/confirmar-email")
     public String confirmEmail(@RequestParam String token) {
-        confirmationService.confirmEmail(token);
+        activationService.confirmEmail(token);
         return "Email confirmado com sucesso";
     }
 
     @PostMapping("/reenviar-email")
     public String resendEmail(@RequestParam("usuarioId") String userId) {
-        emailService.resendConfirmation(userId);
+        confirmationEmailService.resendConfirmation(userId);
         return "Email reenviado com sucesso";
     }
 
     @PostMapping("/aceitar-termos")
     public String acceptTerms(@RequestParam("usuarioId") String userId) {
-        confirmationService.acceptTerms(userId);
+        activationService.acceptTerms(userId);
         return "Termos aceitos com sucesso";
     }
 }

@@ -24,8 +24,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("ConfirmationService")
-class ConfirmationServiceTest {
+@DisplayName("ActivationService")
+class ActivationServiceTest {
 
     @Mock
     private EmailConfirmationRepository confirmationRepository;
@@ -37,7 +37,7 @@ class ConfirmationServiceTest {
     private UserService userService;
 
     @InjectMocks
-    private ConfirmationService service;
+    private ActivationService service;
 
     private User userStub() {
         return User.builder()

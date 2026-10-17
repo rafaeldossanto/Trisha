@@ -16,7 +16,7 @@ import static org.mockito.Mockito.when;
 class UserRegisteredListenerTest {
 
     @Mock
-    private EmailService emailService;
+    private ConfirmationEmailService confirmationEmailService;
 
     @InjectMocks
     private UserRegisteredListener listener;
@@ -26,7 +26,7 @@ class UserRegisteredListenerTest {
     void deveEnviarEmailDeConfirmacao() {
         listener.onUserRegistered(new UserRegisteredEvent("id-123", "rafael@email.com"));
 
-        verify(emailService).sendConfirmation("id-123", "rafael@email.com");
+        verify(confirmationEmailService).sendConfirmation("id-123", "rafael@email.com");
     }
 
     /**
@@ -37,7 +37,7 @@ class UserRegisteredListenerTest {
     @Test
     @DisplayName("engole a falha definitiva de envio em vez de propagar")
     void naoDevePropagarFalhaDeEnvio() {
-        when(emailService.sendConfirmation("id-123", "rafael@email.com"))
+        when(confirmationEmailService.sendConfirmation("id-123", "rafael@email.com"))
                 .thenThrow(new IllegalStateException("Nao foi possivel enviar o email de confirmacao"));
 
         assertThatCode(() -> listener.onUserRegistered(new UserRegisteredEvent("id-123", "rafael@email.com")))

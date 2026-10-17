@@ -23,20 +23,23 @@ import static java.util.Objects.nonNull;
  * issuer e expiracao. Adicionamos a validacao de audience (client-id), que
  * garante que o token foi emitido para a NOSSA aplicacao.
  *
+ * Nao confundir com o JwtKeyConfig: aquele assina e valida o token da propria
+ * aplicacao; este so valida os ID tokens que chegam dos provedores sociais.
+ *
  * Issuers oficiais:
  *  - Google: https://accounts.google.com
  *  - Apple:  https://appleid.apple.com
  */
 @Configuration
 @EnableConfigurationProperties(SocialAuthProperties.class)
-public class JwtDecoderConfig {
+public class SocialJwtDecoderConfig {
 
     private static final String ISSUER_GOOGLE = "https://accounts.google.com";
     private static final String ISSUER_APPLE = "https://appleid.apple.com";
 
     private final SocialAuthProperties properties;
 
-    public JwtDecoderConfig(SocialAuthProperties properties) {
+    public SocialJwtDecoderConfig(SocialAuthProperties properties) {
         this.properties = properties;
     }
 

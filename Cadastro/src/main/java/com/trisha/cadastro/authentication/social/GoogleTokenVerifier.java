@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 /**
  * Verifica ID tokens do Google. A validacao de assinatura (JWKS), issuer,
  * audience e expiracao e feita pelo NimbusJwtDecoder configurado em
- * JwtDecoderConfig; aqui so extraimos os claims relevantes.
+ * SocialJwtDecoderConfig; aqui so extraimos os claims relevantes.
  */
 @Component
 @Slf4j

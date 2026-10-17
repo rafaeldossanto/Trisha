@@ -77,8 +77,8 @@ app:
     confirmacao-url: ${EMAIL_CONFIRMACAO_URL:http://localhost:8080/auth/confirmar-email}
   # Prazo para confirmar o email e aceitar os termos. Estourado o prazo,
   # RegistrationCleanupJob desativa a conta (status INATIVO) e o email volta a
-  # ficar disponivel para um novo cadastro. Deve acompanhar o prazo do token de
-  # confirmacao (EmailService: expiresAt = envio + 10 min).
+  # ficar disponivel para um novo cadastro. O token de confirmacao vale o mesmo
+  # prazo (ConfirmationEmailService: expiresAt = envio + expiracao-minutos).
   cadastro:
     expiracao-minutos: ${CADASTRO_EXPIRACAO_MINUTOS:10}
     intervalo-limpeza-ms: ${CADASTRO_INTERVALO_LIMPEZA_MS:60000}

@@ -14,10 +14,15 @@ import java.util.UUID;
 
 import static java.util.Objects.isNull;
 
+/**
+ * Fluxo do email de confirmacao: gera o token, grava a EmailConfirmation e
+ * pede o envio ao ConfirmationMailer (que e quem fala com o SMTP). Tambem faz
+ * o reenvio, respeitando o intervalo minimo entre dois envios.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class EmailService {
+public class ConfirmationEmailService {
 
     private static final int RESEND_COOLDOWN_SECONDS = 30;
 
@@ -27,6 +32,10 @@ public class EmailService {
 
     @Value("${app.email.confirmacao-url}")
     private String confirmationUrl;
+
+    /** O token vale o mesmo prazo que o RegistrationCleanupJob da ao cadastro. */
+    @Value("${app.cadastro.expiracao-minutos}")
+    private int expirationMinutes;
 
     public String sendConfirmation(String userId, String email) {
         User user = repository.findById(userId)
@@ -39,7 +48,7 @@ public class EmailService {
                 .user(user)
                 .token(token)
                 .status(ConfirmationStatus.PENDENTE)
-                .expiresAt(LocalDateTime.now().plusMinutes(10))
+                .expiresAt(LocalDateTime.now().plusMinutes(expirationMinutes))
                 .sentAt(LocalDateTime.now())
                 .build();
 

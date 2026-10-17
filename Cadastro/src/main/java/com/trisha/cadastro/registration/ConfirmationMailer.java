@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Entrega o email de confirmacao no SMTP, com retentativa.
  *
- * Fica separado de EmailService de proposito: o retry precisa cobrir SO o envio.
+ * Fica separado de ConfirmationEmailService de proposito: o retry precisa cobrir SO o envio.
  * Retentar sendConfirmation inteiro gravaria um EmailConfirmation novo (e um
  * token novo) a cada tentativa. Precisa ser um bean a parte porque @Retryable
  * age por proxy e nao funciona em chamada interna da propria classe.

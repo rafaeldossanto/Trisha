@@ -14,7 +14,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * existe usuario e o email nao deve sair. Combinado com @Async, o POST /usuario
  * responde sem esperar o SMTP.
  *
- * Falha definitiva no envio (depois dos retries de EmailService) apenas registra
+ * Falha definitiva no envio (depois dos retries do ConfirmationMailer) apenas registra
  * o erro: a conta fica PENDENTE e RegistrationCleanupJob a recolhe ao fim do
  * prazo, liberando o email para uma nova tentativa de cadastro. Lancar daqui nao
  * teria para onde propagar — a resposta HTTP ja foi enviada.
@@ -24,13 +24,13 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class UserRegisteredListener {
 
-    private final EmailService emailService;
+    private final ConfirmationEmailService confirmationEmailService;
 
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onUserRegistered(UserRegisteredEvent event) {
         try {
-            emailService.sendConfirmation(event.userId(), event.email());
+            confirmationEmailService.sendConfirmation(event.userId(), event.email());
         } catch (Exception e) {
             log.error("Falha definitiva ao enviar email de confirmacao para o usuario {}: {}",
                     event.userId(), e.getMessage());

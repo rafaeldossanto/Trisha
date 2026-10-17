@@ -26,10 +26,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("EmailService")
-class EmailServiceTest {
+@DisplayName("ConfirmationEmailService")
+class ConfirmationEmailServiceTest {
 
     private static final String CONFIRMATION_URL = "http://localhost:8080/auth/confirmar-email";
+    private static final int EXPIRACAO_MINUTOS = 10;
 
     @Mock
     private UserRepository repository;
@@ -39,11 +40,12 @@ class EmailServiceTest {
     private ConfirmationMailer mailer;
 
     @InjectMocks
-    private EmailService service;
+    private ConfirmationEmailService service;
 
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(service, "confirmationUrl", CONFIRMATION_URL);
+        ReflectionTestUtils.setField(service, "expirationMinutes", EXPIRACAO_MINUTOS);
     }
 
     private User userStub() {
@@ -75,7 +77,10 @@ class EmailServiceTest {
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getToken()).isEqualTo(token);
         assertThat(saved.getStatus()).isEqualTo(ConfirmationStatus.PENDENTE);
-        assertThat(saved.getExpiresAt()).isNotNull();
+        // O prazo vem de app.cadastro.expiracao-minutos, contado a partir do envio.
+        assertThat(saved.getExpiresAt())
+                .isBetween(saved.getSentAt().plusMinutes(EXPIRACAO_MINUTOS).minusSeconds(5),
+                        saved.getSentAt().plusMinutes(EXPIRACAO_MINUTOS).plusSeconds(5));
 
         verify(mailer).send("rafael@email.com", "Rafael", CONFIRMATION_URL + "?token=" + token);
     }
