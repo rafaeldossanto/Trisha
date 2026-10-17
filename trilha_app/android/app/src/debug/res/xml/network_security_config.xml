@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Politica de rede do build de DEBUG. Sobrepoe o arquivo de mesmo nome em
+  src/main/res/xml/ durante o merge de resources — vale APENAS em debug, nunca
+  no APK/AAB publicado.
+
+  Libera HTTP em claro porque em desenvolvimento o backend roda sem TLS:
+    - 10.0.2.2       -> localhost da maquina, visto de dentro do emulador
+    - localhost      -> quando o app roda na propria maquina
+    - 192.168.x.x    -> a maquina na Wi-Fi de casa, para o aparelho fisico
+
+  Para testar no celular real, troque o IP abaixo pelo IPv4 da sua maquina
+  (descubra com `ipconfig`) e ajuste as tres URLs do .env para o mesmo IP.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <!-- Aceita CA instalada pelo usuario: necessario para inspecionar
+                 o trafego com proxy (Charles/mitmproxy) durante o debug. -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <!-- AJUSTE AQUI: IPv4 da sua maquina na rede local -->
+        <domain includeSubdomains="true">192.168.0.15</domain>
+    </domain-config>
+</network-security-config>

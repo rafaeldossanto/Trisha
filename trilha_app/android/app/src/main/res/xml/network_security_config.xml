@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Politica de rede do build de RELEASE (o que vai para a Play Store).
+
+  HTTP em claro e proibido: a API de producao fica atras do Caddy com TLS
+  (https://api.<dominio>), entao nao ha motivo legitimo para trafego sem
+  criptografia. Sem isso, um app numa Wi-Fi publica teria token de sessao e
+  coordenada de GPS trafegando em texto puro.
+
+  O build de DEBUG usa outro arquivo, em src/debug/res/xml/, que libera HTTP
+  para o backend rodando na maquina de desenvolvimento. O resource do sourceSet
+  debug sobrepoe este durante o merge, entao a permissao de dev nunca vaza para
+  o APK publicado.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
