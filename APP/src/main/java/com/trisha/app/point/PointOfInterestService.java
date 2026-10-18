@@ -20,8 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Objects.nonNull;
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -46,7 +44,7 @@ public class PointOfInterestService {
 
         PointOfInterest point = pointRepository.save(PointOfInterestMapper.toEntity(request, path, userId));
 
-        return PointOfInterestMapper.toResponse(point, calculateLevel(point, 0));
+        return PointOfInterestMapper.toResponse(point, point.confidenceLevel(0));
     }
 
     @Transactional
@@ -79,7 +77,8 @@ public class PointOfInterestService {
         PointOfInterest point = pointRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ponto nao encontrado"));
         accessService.validateView(observerId, point.getPath().getAdventure());
-        return PointOfInterestMapper.toResponse(point, calculateLevel(point));
+        return PointOfInterestMapper.toResponse(point,
+                point.confidenceLevel(evidenceRepository.countValidatedUsersByPointId(point.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -92,7 +91,7 @@ public class PointOfInterestService {
         Map<String, Long> validatedPerPoint = countValidatedInBatch(page.getContent());
 
         return page.map(p -> PointOfInterestMapper.toResponse(
-                p, calculateLevel(p, validatedPerPoint.getOrDefault(p.getId(), 0L))));
+                p, p.confidenceLevel(validatedPerPoint.getOrDefault(p.getId(), 0L))));
     }
 
     /**
@@ -123,19 +122,5 @@ public class PointOfInterestService {
             result.put((String) row[0], (Long) row[1]);
         }
         return result;
-    }
-
-    private int calculateLevel(PointOfInterest point) {
-        return calculateLevel(point, evidenceRepository.countValidatedUsersByPointId(point.getId()));
-    }
-
-    private int calculateLevel(PointOfInterest point, long distinctUsers) {
-        boolean hasDescription = nonNull(point.getDescription()) && !point.getDescription().isBlank();
-
-        if (distinctUsers >= 3 && hasDescription) return 5;
-        if (distinctUsers >= 2 && hasDescription) return 4;
-        if (distinctUsers >= 1 && hasDescription) return 3;
-        if (hasDescription) return 2;
-        return 1;
     }
 }

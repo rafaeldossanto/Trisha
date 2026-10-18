@@ -24,6 +24,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+import static java.util.Objects.nonNull;
+
 @Entity
 @Table(name = "pontos_interesse", indexes = {
         @Index(name = "idx_ponto_caminho", columnList = "caminho_id")
@@ -68,6 +70,21 @@ public class PointOfInterest {
 
     @Column(name = "trace_id")
     private String traceId;
+
+    /**
+     * Nivel de confianca do ponto, de 1 a 5. Sem descricao o ponto fica no 1,
+     * por mais evidencias que tenha; com descricao parte do 2 e sobe um nivel
+     * por usuario distinto com evidencia validada, ate 5.
+     */
+    public int confidenceLevel(long distinctValidators) {
+        boolean hasDescription = nonNull(description) && !description.isBlank();
+
+        if (distinctValidators >= 3 && hasDescription) return 5;
+        if (distinctValidators >= 2 && hasDescription) return 4;
+        if (distinctValidators >= 1 && hasDescription) return 3;
+        if (hasDescription) return 2;
+        return 1;
+    }
 
     @PrePersist
     void onCreate() {

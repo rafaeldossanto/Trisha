@@ -15,6 +15,10 @@ public class AdventureAccessService {
 
     private final AdventureParticipantRepository participantRepository;
 
+    /**
+     * A versao JPQL desta regra, usada nas queries de listagem e descoberta, e
+     * {@link AdventureVisibilityJpql#VISIBLE_TO_OBSERVER}.
+     */
     public boolean canView(String observerId, Adventure adventure) {
         if (adventure.getUserId().equals(observerId)) {
             return true;

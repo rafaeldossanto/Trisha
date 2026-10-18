@@ -13,6 +13,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+import static com.trisha.app.adventure.AdventureVisibilityJpql.VISIBLE_TO_OBSERVER;
+
 @Repository
 public interface AdventureRepository extends JpaRepository<Adventure, String> {
     Page<Adventure> findByUserId(String userId, Pageable pageable);
@@ -38,40 +40,20 @@ public interface AdventureRepository extends JpaRepository<Adventure, String> {
      * own adventures always, SO_GRUPO only if they participate.
      * The folder never exposes an adventure the observer would not see on their own.
      */
-    @Query("""
-            SELECT a FROM Adventure a
-            WHERE a.region.id = :regionId AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR a.userId = :observer
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant p WHERE p.adventure.id = a.id AND p.userId = :observer))
-            )
-            """)
+    @Query("SELECT a FROM Adventure a "
+            + "WHERE a.region.id = :regionId AND (a.userId = :observer OR " + VISIBLE_TO_OBSERVER + ")")
     Page<Adventure> findVisibleInRegion(String regionId, String observer, Pageable pageable);
 
     /** Someone else's adventures the observer may see (owner uses findByUserId). */
-    @Query("""
-            SELECT a FROM Adventure a
-            WHERE a.userId = :owner AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant p WHERE p.adventure.id = a.id AND p.userId = :observer))
-            )
-            """)
+    @Query("SELECT a FROM Adventure a WHERE a.userId = :owner AND " + VISIBLE_TO_OBSERVER)
     Page<Adventure> findVisibleByUser(String owner, String observer, Pageable pageable);
 
     /**
      * Feed: the observer's own adventures plus the visible ones from the users
      * they follow, newest first. `authors` never comes empty (sentinel).
      */
-    @Query("""
-            SELECT a FROM Adventure a
-            WHERE (a.userId = :observer OR (a.userId IN :authors AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant p WHERE p.adventure.id = a.id AND p.userId = :observer))
-            )))
-            ORDER BY a.createdAt DESC
-            """)
+    @Query("SELECT a FROM Adventure a "
+            + "WHERE (a.userId = :observer OR (a.userId IN :authors AND " + VISIBLE_TO_OBSERVER + ")) "
+            + "ORDER BY a.createdAt DESC")
     Page<Adventure> findFeed(String observer, List<String> authors, Pageable pageable);
 }

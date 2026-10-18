@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import static com.trisha.app.adventure.AdventureVisibilityJpql.VISIBLE_TO_OBSERVER;
+
 @Repository
 public interface PathRepository extends JpaRepository<Path, String> {
     Page<Path> findByAdventureId(String adventureId, Pageable pageable);
@@ -24,24 +26,8 @@ public interface PathRepository extends JpaRepository<Path, String> {
     List<Object[]> findTimespansByAdventureIds(List<String> ids);
 
     /** Someone else's paths the observer may see (owner uses findByUserId). */
-    @Query(value = """
-            SELECT p FROM Path p JOIN p.adventure a
-            WHERE p.userId = :owner AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant part
-                                WHERE part.adventure.id = a.id AND part.userId = :observer))
-            )
-            """,
-            countQuery = """
-            SELECT COUNT(p) FROM Path p JOIN p.adventure a
-            WHERE p.userId = :owner AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant part
-                                WHERE part.adventure.id = a.id AND part.userId = :observer))
-            )
-            """)
+    @Query(value = "SELECT p FROM Path p JOIN p.adventure a WHERE p.userId = :owner AND " + VISIBLE_TO_OBSERVER,
+            countQuery = "SELECT COUNT(p) FROM Path p JOIN p.adventure a WHERE p.userId = :owner AND " + VISIBLE_TO_OBSERVER)
     Page<Path> findVisibleByUser(String owner, String observer, Pageable pageable);
 
     /**
@@ -50,14 +36,7 @@ public interface PathRepository extends JpaRepository<Path, String> {
      * The observer's own paths are excluded — the app already plots them.
      * Same visibility semantics as AdventureRepository.findVisibleInRegion.
      */
-    @Query("""
-            SELECT p FROM Path p JOIN FETCH p.adventure a
-            WHERE p.id IN :ids AND a.userId <> :observer AND (
-                a.visibility = com.trisha.app.adventure.AdventureVisibility.PUBLICA
-                OR (a.visibility = com.trisha.app.adventure.AdventureVisibility.SO_GRUPO
-                    AND EXISTS (SELECT 1 FROM AdventureParticipant part
-                                WHERE part.adventure.id = a.id AND part.userId = :observer))
-            )
-            """)
+    @Query("SELECT p FROM Path p JOIN FETCH p.adventure a "
+            + "WHERE p.id IN :ids AND a.userId <> :observer AND " + VISIBLE_TO_OBSERVER)
     List<Path> findDiscoverableByIds(List<String> ids, String observer);
 }
