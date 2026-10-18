@@ -3,7 +3,6 @@ package com.trisha.app.shared.util;
 import com.trisha.app.shared.exception.ForbiddenException;
 import lombok.experimental.UtilityClass;
 
-import java.util.function.Supplier;
 
 /**
  * Utilitario para validar propriedade de recursos.
@@ -25,15 +24,6 @@ public class OwnershipValidator {
     public static void requireOwner(String userId, String ownerId, String message) {
         if (!userId.equals(ownerId)) {
             throw new ForbiddenException(message);
-        }
-    }
-
-    /**
-     * Variante com supplier para mensagem lazy (evita concatenacao desnecessaria).
-     */
-    public static void requireOwner(String userId, String ownerId, Supplier<String> message) {
-        if (!userId.equals(ownerId)) {
-            throw new ForbiddenException(message.get());
         }
     }
 }

@@ -13,6 +13,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
 /**
  * Enriquece a AdventureResponse com metricas derivadas (nao armazenadas):
  * numero de participantes e duracao em horas — janela de parede da aventura,
@@ -64,7 +67,7 @@ public class AdventureMetricsAssembler {
         }
         for (Object[] row : pathRepository.findTimespansByAdventureIds(ids)) {
             Double hours = durationHours((LocalDateTime) row[1], (LocalDateTime) row[2]);
-            if (hours != null) {
+            if (nonNull(hours)) {
                 durations.put((String) row[0], hours);
             }
         }
@@ -72,7 +75,7 @@ public class AdventureMetricsAssembler {
     }
 
     private Double durationHours(LocalDateTime start, LocalDateTime end) {
-        if (start == null || end == null || end.isBefore(start)) {
+        if (isNull(start) || isNull(end) || end.isBefore(start)) {
             return null;
         }
         long minutes = Duration.between(start, end).toMinutes();

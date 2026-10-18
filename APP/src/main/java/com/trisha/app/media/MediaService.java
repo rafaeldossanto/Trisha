@@ -69,6 +69,7 @@ public class MediaService {
                 .map(MediaMapper::toResponse);
     }
 
+    @Transactional
     public void delete(String userId, String id) {
         Media media = mediaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Midia nao encontrada"));

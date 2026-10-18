@@ -19,17 +19,6 @@ import java.util.List;
 
 import static com.trisha.app.path.PathMapper.toResponse;
 
-/**
- * questionamento:
- * se um usuario entrar dentro de uma aventura de outro, e fizer o caminho dentro dessa aventura, se ele sair dessa aventura o registro do caminho ser excluido?
- * se um usuario para e querer finalizar o caminho mas ele esta dentro de uma aventura que nao é dele, ele nao consegue finalizar por conta disso,
- * sendo que em certas situações pode ocorrer de um terminar seu caminho e outros continuarem, entao nao pode se limitar apenas ao woner finalizar o caminho,
- * caminhos individuas mas registrados em uma mesma aventura, com cada um podendo finalizar quando quiser, e caso ele queria retirar essa aventura o caminho deve continuar salvo.
- * opção para esse problema: assim que entrar em uma aventura, criamos uma aventura a parte/individual em que o usuario tera poder sobre ela, e caso ele quera se disvincular da aventura que fez em grupo ele consegue mas mantendo os registros
- * criar uma aventura a parte assim que entrar em um com amigos acredito que seja desnecessario. mais facil: ao querer sair da aventura em grupo, perguntar se deseja manter os dados com uma aventura pessoal apenas com seus dados retirando o dos outros,
- * mas podendno tbm escolher de quem ele quer que mantenha
- */
-
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -60,6 +49,7 @@ public class PathService {
         return toResponse(pathRepository.save(PathMapper.toEntity(request, adventure, number, userId)));
     }
 
+    @Transactional
     public PathResponse finish(String userId, String id, Double totalDistanceKm) {
         log.info("Finishing path: {}", id);
         Path path = findById(id);

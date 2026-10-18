@@ -26,6 +26,7 @@ public class FriendshipService {
     private final UserSearchService userSearchService;
     private final FollowerRepository followerRepository;
 
+    @Transactional
     public FriendshipResponse request(String requesterId, FriendshipRequest request) {
         log.info("Friendship request from {} to {}", requesterId, request.receiverCode());
 
@@ -41,6 +42,7 @@ public class FriendshipService {
         return toResponse(friendshipRepository.save(FriendshipMapper.toEntity(requesterId, receiverId)));
     }
 
+    @Transactional
     public FriendshipResponse respond(String userId, String friendshipId, FriendshipStatus status) {
         if (!FriendshipStatus.ACEITA.equals(status) && !FriendshipStatus.RECUSADA.equals(status)) {
             throw new IllegalArgumentException("Resposta invalida: aceite ou recuse a solicitacao");
@@ -62,6 +64,7 @@ public class FriendshipService {
         return toResponse(friendshipRepository.save(friendship));
     }
 
+    @Transactional
     public void cancelRequest(String userId, String friendshipId) {
         Friendship friendship = findById(friendshipId);
 
@@ -76,6 +79,7 @@ public class FriendshipService {
         log.info("Friendship request {} cancelled", friendshipId);
     }
 
+    @Transactional
     public void unfriend(String userId, String friendshipId) {
         Friendship friendship = findById(friendshipId);
         validateParticipant(friendship, userId);
@@ -107,6 +111,7 @@ public class FriendshipService {
         return toResponse(friendshipRepository.save(friendship));
     }
 
+    @Transactional
     public void unblock(String userId, String friendshipId) {
         Friendship friendship = findById(friendshipId);
 

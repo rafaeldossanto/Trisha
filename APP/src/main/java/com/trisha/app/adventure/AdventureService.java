@@ -117,6 +117,7 @@ public class AdventureService {
         adventureRepository.unlinkRegion(regionId);
     }
 
+    @Transactional
     public AdventureResponse updateStatus(String userId, String id, AdventureStatus status) {
         log.info("Updating status of adventure {} to {}", id, status);
         Adventure adventure = findOwner(userId, id);

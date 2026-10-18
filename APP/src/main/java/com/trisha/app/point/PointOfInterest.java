@@ -24,6 +24,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 
 @Entity
@@ -88,7 +89,7 @@ public class PointOfInterest {
 
     @PrePersist
     void onCreate() {
-        if (traceId == null) {
+        if (isNull(traceId)) {
             traceId = TraceContext.current();
         }
     }

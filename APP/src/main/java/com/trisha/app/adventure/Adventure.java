@@ -25,6 +25,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 
+import static java.util.Objects.isNull;
+
 @Entity
 @Table(name = "aventuras", indexes = {
         @Index(name = "idx_aventura_usuario", columnList = "usuario_id")
@@ -73,7 +75,7 @@ public class Adventure {
 
     @PrePersist
     void onCreate() {
-        if (traceId == null) {
+        if (isNull(traceId)) {
             traceId = TraceContext.current();
         }
     }

@@ -54,7 +54,7 @@ public class PointOfInterestService {
 
         accessService.validateView(userId, point.getPath().getAdventure());
 
-        double distance = GeoUtils.distanciaMetros(
+        double distance = GeoUtils.distanceMeters(
                 point.getLatitude(), point.getLongitude(),
                 request.captureLat(), request.captureLng()
         );

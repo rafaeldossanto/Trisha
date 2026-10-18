@@ -12,6 +12,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+import static java.util.Objects.isNull;
+
 /**
  * Coloca o traceId da requisicao no MDC. Le o header {@code X-Trace-Id} vindo da
  * borda (BFF); se vier vazio (chamada direta ao servico), gera um. Limpa o MDC
@@ -25,7 +27,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String traceId = request.getHeader(TraceContext.HEADER);
-        if (traceId == null || traceId.isBlank()) {
+        if (isNull(traceId) || traceId.isBlank()) {
             traceId = TraceContext.generate();
         }
         MDC.put(TraceContext.MDC_KEY, traceId);

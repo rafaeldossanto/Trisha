@@ -20,6 +20,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 import static com.trisha.app.path.Color.ROXO;
+import static java.util.Objects.isNull;
 
 @Entity
 @Table(name = "caminhos", indexes = {
@@ -64,7 +65,7 @@ public class Path {
 
     @PrePersist
     void onCreate() {
-        if (traceId == null) {
+        if (isNull(traceId)) {
             traceId = TraceContext.current();
         }
     }

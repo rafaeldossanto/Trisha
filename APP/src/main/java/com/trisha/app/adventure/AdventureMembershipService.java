@@ -44,6 +44,7 @@ public class AdventureMembershipService {
     private final MediaService mediaService;
     private final PointOfInterestService pointService;
 
+    @Transactional
     public void addParticipant(String ownerId, String adventureId, String userId) {
         Adventure adventure = findOwner(ownerId, adventureId);
 

@@ -4,6 +4,8 @@ import lombok.experimental.UtilityClass;
 
 import java.util.function.Function;
 
+import static java.util.Objects.isNull;
+
 /**
  * Utilitarios compartilhados entre os mappers do APP.
  *
@@ -27,6 +29,6 @@ public class MapperUtils {
      * @return id da entidade ou null
      */
     public static <T> String idOrNull(T entity, Function<T, String> idGetter) {
-        return entity == null ? null : idGetter.apply(entity);
+        return isNull(entity) ? null : idGetter.apply(entity);
     }
 }
