@@ -15,12 +15,12 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Setter
 public class SocialAuthProperties {
 
-    private Provedor google = new Provedor();
-    private Provedor apple = new Provedor();
+    private Provider google = new Provider();
+    private Provider apple = new Provider();
 
     @Getter
     @Setter
-    public static class Provedor {
+    public static class Provider {
         /** Client ID (audience) esperado no ID token deste provedor. */
         private String clientId;
     }

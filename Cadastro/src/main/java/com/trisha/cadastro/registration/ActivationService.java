@@ -103,21 +103,21 @@ public class ActivationService {
      * sao gravadas juntas, ou nenhuma das duas e.
      */
     private void tryActivate(String userId) {
-        boolean emailConfirmado =
+        boolean emailConfirmed =
                 confirmationRepository.existsByUserIdAndStatus(userId, ConfirmationStatus.CONFIRMADO);
-        if (!emailConfirmado) {
+        if (!emailConfirmed) {
             log.info("Cadastro {} aguardando confirmacao de email", userId);
             return;
         }
 
-        boolean termosAceitos = termsRepository.existsByUserIdAndAcceptedTrue(userId);
-        if (!termosAceitos) {
+        boolean termsAccepted = termsRepository.existsByUserIdAndAcceptedTrue(userId);
+        if (!termsAccepted) {
             log.info("Cadastro {} aguardando aceite dos termos", userId);
             return;
         }
 
-        int ativados = userService.activateIfPending(userId);
-        if (ativados > 0) {
+        int activated = userService.activateIfPending(userId);
+        if (activated > 0) {
             log.info("Cadastro concluido, conta ativada: {}", userId);
         } else {
             log.info("Conta {} ja estava ativa ou nao esta mais pendente", userId);

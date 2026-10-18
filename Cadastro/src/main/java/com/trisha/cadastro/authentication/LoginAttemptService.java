@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import static java.util.Objects.isNull;
+import static java.util.Objects.nonNull;
+
 /**
  * Bloqueio temporario de login por conta (email) apos varias falhas seguidas.
  * Contador por email no Redis com expiracao automatica (TTL) — some sozinho
@@ -18,10 +21,10 @@ import java.util.List;
 @Slf4j
 public class LoginAttemptService {
 
-    private static final String PREFIXO = "login:fail:";
+    private static final String KEY_PREFIX = "login:fail:";
 
     // INCR no primeiro erro define o TTL da janela de bloqueio; retorna a contagem.
-    private static final RedisScript<Long> REGISTRAR = new DefaultRedisScript<>(
+    private static final RedisScript<Long> RECORD_FAILURE = new DefaultRedisScript<>(
             "local c = redis.call('INCR', KEYS[1]) "
                     + "if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end "
                     + "return c", Long.class);
@@ -39,8 +42,8 @@ public class LoginAttemptService {
         if (!properties.isEnabled()) {
             return;
         }
-        Long falhas = falhasAtuais(chave(email));
-        if (falhas != null && falhas >= properties.getMaxAttempts()) {
+        Long failures = currentFailures(key(email));
+        if (nonNull(failures) && failures >= properties.getMaxAttempts()) {
             log.warn("[LOCKOUT] Login bloqueado por excesso de tentativas: {}", email);
             throw new TooManyAttemptsException("Muitas tentativas de login. Tente novamente em alguns minutos.");
         }
@@ -52,7 +55,7 @@ public class LoginAttemptService {
             return;
         }
         try {
-            redis.execute(REGISTRAR, List.of(chave(email)), String.valueOf(properties.getBlockSeconds()));
+            redis.execute(RECORD_FAILURE, List.of(key(email)), String.valueOf(properties.getBlockSeconds()));
         } catch (RuntimeException ex) {
             log.warn("[LOCKOUT] Redis indisponivel ao registrar falha (ignorado): {}", ex.getMessage());
         }
@@ -64,23 +67,23 @@ public class LoginAttemptService {
             return;
         }
         try {
-            redis.delete(chave(email));
+            redis.delete(key(email));
         } catch (RuntimeException ex) {
             log.warn("[LOCKOUT] Redis indisponivel ao resetar contador (ignorado): {}", ex.getMessage());
         }
     }
 
-    private Long falhasAtuais(String chave) {
+    private Long currentFailures(String key) {
         try {
-            String valor = redis.opsForValue().get(chave);
-            return valor == null ? null : Long.parseLong(valor);
+            String value = redis.opsForValue().get(key);
+            return isNull(value) ? null : Long.parseLong(value);
         } catch (RuntimeException ex) {
             log.warn("[LOCKOUT] Redis indisponivel ao consultar contador (fail-open): {}", ex.getMessage());
             return null;
         }
     }
 
-    private String chave(String email) {
-        return PREFIXO + email.trim().toLowerCase();
+    private String key(String email) {
+        return KEY_PREFIX + email.trim().toLowerCase();
     }
 }

@@ -156,7 +156,6 @@ public class JwtKeyConfig {
                 .build();
     }
 
-    /** Producao e sinalizada pelos profiles Spring "prod"/"producao"/"production". */
     /**
      * Unicos profiles em que a chave bundled do repositorio pode assinar tokens.
      * Nao inclui o caso "nenhum profile ativo" de proposito — e justamente o
