@@ -3,8 +3,20 @@
 Serviço de **identidade e autenticação** da Trilha. É o emissor central de tokens: cadastra usuários, valida login social (Google/Apple), emite o *access token* da aplicação (JWT RSA) e publica a chave pública (JWKS) que os demais serviços usam para validar esse token.
 
 - **Porta:** `8080`
-- **Pacote raiz:** `com.trail.Cadastro`
-- **Banco:** PostgreSQL `trilha_cadastro` (porta `5432`)
+- **Pacote raiz:** `com.trisha.cadastro`
+- **Banco:** PostgreSQL `trisha` (porta `5432`), compartilhado com o APP, que lê a tabela `usuario` (o Cadastro é o dono dela).
+
+## Estrutura
+
+O código é organizado por área, com os DTOs em `dto/`:
+
+| Pasta | Área |
+|---|---|
+| `account/` | o usuário e as transições de status; `UserService` é o único que cria e muda o status de uma conta |
+| `registration/` | do cadastro à ativação: confirmação de e-mail, termos, prazo |
+| `authentication/` | login por senha com bloqueio por tentativas, dev-login e, em `social/`, o login Google/Apple |
+| `token/` | emissão do JWT e JWKS |
+| `shared/` | segurança, async, tratamento de erro, trace |
 
 ## O que faz
 

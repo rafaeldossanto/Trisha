@@ -65,7 +65,8 @@ O [[BFF]] não é um proxy burro. Ele:
 ## Stack
 
 - **Java 21**, **Spring Boot 4**, Gradle
-- **PostgreSQL 18** (um banco por serviço, mesma instância — ver
+- **PostgreSQL 18** (mesma instância: Cadastro e APP dividem o banco `trisha`;
+  loc e midia têm o próprio — ver [[Banco de Dados e Migrations]] e
   [[Decisões Deliberadas]])
 - **Redis** (cache do BFF, lockout de login, Pub/Sub do tempo real)
 - **MinIO** (S3-compatível, binários)

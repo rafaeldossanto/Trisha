@@ -1,7 +1,7 @@
 ---
 tags: [servico, backend]
 porta: 8080
-banco: trilha_cadastro
+banco: trisha
 repo: Trisha
 pasta: Cadastro
 atualizado: 2026-10-17
@@ -9,10 +9,29 @@ atualizado: 2026-10-17
 
 # Serviço Cadastro
 
-**Porta 8080 · banco `trilha_cadastro` · pacote `com.trail.Cadastro`**
+**Porta 8080 · banco `trisha` (compartilhado com o [[Serviço APP]]) · pacote `com.trisha.cadastro`**
 
 Dono da identidade. É o único serviço que guarda senha e o único que **assina**
 token — ver [[Autenticação e Identidade]].
+
+## Estrutura do código
+
+Desde 17/10/2026 o código é organizado **por área**, com os DTOs na subpasta `dto/`:
+
+| Pasta | O que mora lá |
+|---|---|
+| `account/` | `User` e suas transições de status, `UserService` (o **único** que cria e muda o status de um usuário), `UserCode` (o `codigoUsuario`) |
+| `registration/` | cadastro até a ativação: `RegistrationService`, `ActivationService`, `ConfirmationEmailService`, `ConfirmationMailer`, termos, o job de limpeza |
+| `authentication/` | login por senha e bloqueio por tentativas, dev-login; `social/` com o login Google/Apple |
+| `token/` | emissão do JWT e o JWKS |
+| `shared/` | segurança, async, tratamento de erro, trace |
+
+Login social, dev-login e ativação não escrevem mais direto na tabela `usuario`:
+passam pelo `UserService`. É a mesma regra do [[Serviço APP]]: escrever em dado
+de outra área só pelo service dela; ler pode ser direto no repositório.
+
+O único Strategy do serviço é o `SocialTokenVerifier`: um provedor novo de login
+social é uma classe nova que implementa a interface.
 
 ## Endpoints
 
@@ -78,11 +97,15 @@ correm em qualquer ordem; a última a chegar é quem ativa.
 > Uma conta reaproveitada (ver abaixo) volta a `PENDENTE` mantendo a data de criação
 > original. Por `createdAt`, todo recadastro seria expirado no primeiro ciclo.
 
-Peças: `ConfirmationService` (ativação) · `RegistrationCleanupJob` (prazo) ·
-`UserRegisteredListener` + `ConfirmationMailer` (e-mail com `@Retryable`).
+Peças: `ActivationService` (ativação) · `ConfirmationEmailService` (token de
+confirmação e reenvio com intervalo mínimo) · `RegistrationCleanupJob` (prazo) ·
+`UserRegisteredListener` + `ConfirmationMailer` (o envio SMTP de fato, com
+`@Retryable`).
 
 Configuração: `app.cadastro.expiracao-minutos` (10) e
-`app.cadastro.intervalo-limpeza-ms` (60000).
+`app.cadastro.intervalo-limpeza-ms` (60000). O prazo do token de confirmação lê a
+mesma chave do job, então os dois não divergem mais. Só o texto do e-mail ainda
+diz "10 minutos" fixo.
 
 ## Regras que valem conhecer
 
@@ -98,7 +121,8 @@ Configuração: `app.cadastro.expiracao-minutos` (10) e
 
 ## Dependências
 
-Postgres · Redis (lockout) · SMTP (e-mail)
+Postgres (banco `trisha`, onde o Cadastro é o dono da tabela `usuario` e o
+[[Serviço APP]] só a lê) · Redis (lockout) · SMTP (e-mail)
 
 Não há mais dependência de broker externo para o cadastro funcionar.
 

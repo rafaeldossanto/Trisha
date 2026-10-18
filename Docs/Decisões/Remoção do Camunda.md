@@ -65,7 +65,7 @@ das vantagens de observabilidade que justificam a plataforma.
 
 | Peça do BPMN | Substituto |
 |---|---|
-| Gateway paralelo + `liberacao-conta` | `ConfirmationService.tryActivate()` |
+| Gateway paralelo + `liberacao-conta` | `ActivationService.tryActivate()` (era `ConfirmationService` até 17/10/2026) |
 | Boundary timer `PT10M` + `delecao-dados` | `RegistrationCleanupJob` (`@Scheduled`) |
 | `envio-email` (send task) | `UserRegisteredEvent` + `@Async` no listener |
 | Reentrega automática de job | `@Retryable` no `ConfirmationMailer` |
@@ -90,7 +90,8 @@ que registra a confirmação: ou grava as duas coisas, ou nenhuma. **A janela de
 
 ### O corte de expiração usa `updatedAt`, não `createdAt`
 
-Detalhe que quase virou bug: `UserMapper.mapToReactivated` devolve uma conta
+Detalhe que quase virou bug: o reaproveitamento de conta (`User.reopen`, antes
+`UserMapper.mapToReactivated`) devolve uma conta
 `INATIVO` para `PENDENTE` mas **preserva a data de criação original**. Filtrando por
 `createdAt`, todo recadastro de conta expirada seria varrido no primeiro ciclo — o
 usuário se recadastraria e perderia a conta em até 60 segundos. O `updatedAt` é
@@ -101,7 +102,7 @@ atualizado nos dois caminhos (criação e reaproveitamento).
 Sendo honesto, três coisas:
 
 1. **O diagrama BPMN** como documentação visual do fluxo — substituído por este
-   documento e pelo Javadoc do `ConfirmationService`.
+   documento e pelo Javadoc do `ActivationService`.
 2. **Histórico de instâncias** — que, sem Operate, já era inacessível na prática.
 3. **Retry automático com backoff** nos jobs — reposto pelo `@Retryable`, mas agora
    é código nosso e não infraestrutura.

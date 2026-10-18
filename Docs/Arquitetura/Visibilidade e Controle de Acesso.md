@@ -50,9 +50,14 @@ O `AdventureAccessService` no [[Serviço APP]] centraliza:
 
 - `canView...` — leitura (aventura, caminho, ponto, mídia)
 - `canContribute` / `validateContribute` — escrita (dono **ou** participante)
-- `canViewPath` — libera **o dono do próprio caminho** antes de olhar a
-  visibilidade da aventura. Isso importa: quem sai de uma aventura, ou é movido para
-  uma aventura privada, não perde acesso ao que registrou.
+
+A mesma regra de leitura, em JPQL, está num lugar só:
+`AdventureVisibilityJpql.VISIBLE_TO_OBSERVER`, usado pelas 5 queries de listagem e
+descoberta. Mudou a regra num, muda no outro.
+
+Para caminhos, o `PathService.canView` libera **o dono do próprio caminho** antes de
+olhar a visibilidade da aventura. Isso importa: quem sai de uma aventura, ou é
+movido para uma aventura privada, não perde acesso ao que registrou.
 
 O [[Serviço Localização]] não conhece o domínio social; ele **pergunta** ao APP:
 

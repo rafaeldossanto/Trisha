@@ -1,24 +1,29 @@
 ---
 tags: [infra, banco]
-atualizado: 2026-07-25
+atualizado: 2026-10-17
 ---
 
 # Banco de Dados e Migrations
 
-**Um banco por serviço**, todos na mesma instância PostgreSQL 18. O
-[[BFF]] não tem banco.
+Três bancos na mesma instância PostgreSQL 18. O [[BFF]] não tem banco.
 
 | Serviço | Banco | Extensão |
 |---|---|---|
-| [[Serviço Cadastro]] | `trilha_cadastro` | — |
-| [[Serviço APP]] | `trilha_app` | — |
+| [[Serviço Cadastro]] | `trisha` (compartilhado) | — |
+| [[Serviço APP]] | `trisha` (compartilhado) | — |
 | [[Serviço Localização]] | `trilha_localizacao` | **PostGIS** |
 | [[Serviço Mídia]] | `trilha_midia` | — |
 
+> [!important] Cadastro e APP dividem o `trisha` desde 29/07/2026
+> O Cadastro é o dono da tabela `usuario`; o APP a lê como entidade `@Immutable`.
+> Com bancos separados, a cópia do APP nascia vazia e nada a sincronizava. Para as
+> migrations não colidirem, o APP grava o histórico em
+> `flyway_schema_history_app`, e a tabela `usuario` tem definição idêntica nos dois
+> schemas base, então a ordem em que os serviços sobem num banco vazio não importa.
+> Ver [[Decisões Deliberadas]].
+
 > [!note] Mesma instância é deliberado
-> Bancos separados dão o isolamento lógico que importa (nenhum serviço lê a tabela
-> do outro). Instâncias separadas viriam depois, se a carga pedir. Ver
-> [[Decisões Deliberadas]] e [[Escalabilidade]].
+> Instâncias separadas viriam depois, se a carga pedir. Ver [[Escalabilidade]].
 
 ## Como o schema nasce
 

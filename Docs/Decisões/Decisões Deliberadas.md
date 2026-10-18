@@ -16,10 +16,44 @@ Extrair para uma lib compartilhada criaria acoplamento de build entre serviços 
 hoje têm ciclo de vida independente. Duplicação pequena e estável é mais barata que
 uma dependência comum.
 
-### Bancos separados, mesma instância
-Cada serviço tem seu banco (isolamento lógico real — ninguém lê a tabela do outro),
-mas todos na mesma instância Postgres. Instâncias separadas viriam quando a carga
-pedir. Ver [[Escalabilidade]].
+### Cadastro e APP dividem o banco; o resto é separado, tudo na mesma instância
+[[Serviço Cadastro]] e [[Serviço APP]] usam o mesmo banco, `trisha`. O Cadastro é o
+dono da tabela `usuario`; o APP a lê como entidade `@Immutable`. Decisão de
+29/07/2026: com bancos separados, a cópia do lado do APP nascia vazia (nada a
+sincronizava) e a busca de usuário, o seguir por código e o nome do autor no feed
+paravam de funcionar. Um webhook Cadastro → APP foi avaliado e descartado. O APP
+guarda o histórico do Flyway em `flyway_schema_history_app`, porque as versões das
+migrations dos dois se cruzam.
+
+[[Serviço Localização]] e [[Serviço Mídia]] têm cada um o próprio banco. Todos
+ficam na mesma instância Postgres; instâncias separadas viriam quando a carga
+pedir. Ver [[Banco de Dados e Migrations]] e [[Escalabilidade]].
+
+### Código organizado por área, com uma regra entre áreas
+Decisão de 17/10/2026, para Cadastro e APP: as pastas seguem a área de negócio
+(`adventure/`, `path/`, `social/`... no APP; `account/`, `registration/`,
+`authentication/`, `token/` no Cadastro), não a camada técnica. Os serviços
+menores (loc, midia, bff) ficaram como estavam, por serem pequenos demais para
+ganhar algo com isso.
+
+A regra entre áreas: **escrever** em dado de outra área só pelo service dela;
+**ler** pode ser direto no repositório da outra área. Proibir também a leitura
+criaria ciclos entre beans (aventura ↔ coleção, aventura ↔ caminho), que o Spring
+Boot recusa, e exigiria camadas extras só para contorná-los. As entidades JPA já se
+referenciam entre áreas de qualquer forma.
+
+### Padrões só onde há ganho real
+No mesmo refactor de 17/10/2026, cada padrão foi pesado contra a complexidade que
+traria:
+- **Entraram:** um único orquestrador entre áreas (`AdventureMembershipService`:
+  sair, remover participante, excluir aventura); o Strategy que já existia no login
+  social (`SocialTokenVerifier`); regras na entidade quando são sobre ela mesma (nível
+  de confiança do ponto, transições de status do usuário); e o trecho único de JPQL
+  da visibilidade da aventura.
+- **Ficaram de fora:** Factory de usuário (embrulharia uma linha), uma classe de use
+  case por endpoint (triplicaria os arquivos sem regra nova), Strategy de visibilidade
+  (um `switch` de 3 casos é mais claro), Specification/Criteria (mais verboso que o
+  JPQL) e eventos entre as áreas do APP (a regra acima já resolve os ciclos).
 
 ### `trilha_web` como projeto separado do mobile
 Decisão de 25/07/2026: a V1 web sai primeiro, sem arrastar o [[App Mobile]]. O
@@ -93,7 +127,8 @@ auditoria.
 - **`Objects.isNull`** em vez de `== null`
 - **UUID gerado no mapper** (`toEntity`), não no service
 - **`@UtilityClass`** nos mappers — por isso o `UserMapper` recebe a senha já
-  encodada, em vez de injetar o `PasswordEncoder`
+  encodada, em vez de injetar o `PasswordEncoder`. O mapper fica na pasta da área,
+  junto da entidade, e não numa pasta `mapper/`
 - **`codigoUsuario` é público**; o `id` interno não circula no contrato
 
 ## Produto

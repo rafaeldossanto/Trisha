@@ -20,8 +20,8 @@ Sobe **Redis** (6379), **MinIO** (9000 + console 9001) e **Mosquitto** (1883,
 anônimo).
 
 > [!important] O Postgres é NATIVO, fora do compose
-> Postgres 18 instalado na máquina, na porta 5432, com os bancos
-> `trilha_cadastro`, `trilha_app`, `trilha_localizacao` e `trilha_midia`.
+> Postgres 18 instalado na máquina, na porta 5432. Os serviços esperam os bancos
+> `trisha` (Cadastro e APP, compartilhado), `trilha_localizacao` e `trilha_midia`.
 > Não está no `docker-compose.dev.yml` de propósito.
 
 ### Serviços

@@ -130,6 +130,32 @@ serviços viraram um workflow reutilizável, cada um filtrado pela própria past
 O guard do deploy passou a comparar a pasta com o último run verde em vez de
 exigir o run no HEAD. Ver [[CI e CD]] e [[Decisões Deliberadas]].
 
+## 17/10 — Cadastro e APP organizados por área
+
+Os dois serviços maiores trocaram as pastas por camada técnica (`controller/`,
+`service/`, `repository/`...) por pastas por área de negócio, e os pacotes raiz
+viraram `com.trisha.cadastro` e `com.trisha.app`. loc, midia e bff ficaram como
+estavam, por serem pequenos demais para ganhar algo com isso. O contrato não
+mudou: rotas, JSON, colunas e mensagens de erro são os mesmos.
+
+Mais do que mover arquivos, cada responsabilidade foi para o dono:
+- no Cadastro, só o `UserService` cria e muda o status de um usuário (antes eram 5
+  lugares);
+- no APP, a saída e a exclusão de aventura passaram a chamar os services de caminho,
+  mídia e ponto, em vez de escrever direto em 5 repositórios que não eram dela;
+- o nível de confiança foi para a entidade do ponto;
+- a regra de visibilidade em JPQL, antes copiada em 5 queries, ficou num lugar só.
+
+A regra entre áreas e os padrões que ficaram de fora estão em
+[[Decisões Deliberadas]].
+
+Achado no caminho: no Cadastro, o status `EXPIRADO` do token de confirmação nunca
+era gravado, porque a exceção lançada logo depois desfazia a transação. O código
+morto saiu; o valor continua no enum, já que o status é gravado pela posição.
+
+A nota de banco também foi corrigida: o cofre ainda dizia "um banco por serviço",
+mas Cadastro e APP dividem o `trisha` desde 29/07.
+
 ## Pendências abertas
 
 - Sem VPS; deploy dormente ([[Deploy em Produção]])

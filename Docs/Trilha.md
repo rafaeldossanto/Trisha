@@ -27,8 +27,8 @@ continuam `Trilha`/`trilha` (ver [[Identidade Visual]]).
 
 | Serviço | Porta | Banco | Responsabilidade |
 |---|---|---|---|
-| [[Serviço Cadastro]] | 8080 | `trilha_cadastro` | Contas, login, e-mail, emissão de token |
-| [[Serviço APP]] | 8081 | `trilha_app` | Domínio: aventuras, caminhos, social |
+| [[Serviço Cadastro]] | 8080 | `trisha` (com o APP) | Contas, login, e-mail, emissão de token |
+| [[Serviço APP]] | 8081 | `trisha` (com o Cadastro) | Domínio: aventuras, caminhos, social |
 | [[Serviço Localização]] | 8082 | `trilha_localizacao` | Sessões GPS, trilhas no mapa |
 | [[Serviço Mídia]] | 8083 | `trilha_midia` | Upload de fotos (MinIO) |
 | [[BFF]] | 8090 | — | Única porta pública; agrega e protege |

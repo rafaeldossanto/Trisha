@@ -3,8 +3,25 @@
 Serviço de **domínio principal** da Trilha — concentra o núcleo da rede social de trilhas: aventuras, caminhos, pontos de interesse, evidências, metadados de mídia, amizades, seguidores, regiões (pastas) e busca de usuários. É um *resource server*: recebe o ator autenticado do token (JWT validado pela chave pública do Cadastro), nunca do corpo da requisição.
 
 - **Porta:** `8081`
-- **Pacote raiz:** `com.app.APP`
-- **Banco:** PostgreSQL `trilha_app` (porta `5432`)
+- **Pacote raiz:** `com.trisha.app`
+- **Banco:** PostgreSQL `trisha` (porta `5432`), compartilhado com o Cadastro, que é o dono da tabela `usuario`. O histórico do Flyway do APP fica em `flyway_schema_history_app`.
+
+## Estrutura
+
+O código é organizado por área de negócio, com os DTOs em `dto/`:
+
+| Pasta | Área |
+|---|---|
+| `adventure/` | aventuras, participantes, autorização por visibilidade, métricas, saída e exclusão |
+| `path/` | caminhos |
+| `point/` | pontos de interesse, evidências, marcação pessoal, nível de confiança |
+| `region/` | coleções (as "pastas") e cidades |
+| `media/` | metadados de mídia |
+| `social/` | amizades e seguidores |
+| `user/` | visão read-only do usuário e busca |
+| `shared/` | segurança, auditing JPA, tratamento de erro, trace, utilitários |
+
+Regra entre áreas: escrever em dado de outra área só pelo service dela; ler pode ser direto no repositório.
 
 ## O que faz
 
@@ -62,6 +79,6 @@ Documentação da API: `http://localhost:8081/swagger-ui.html`. Perfil de produ�
 
 ## Convenções
 
-Identificadores do código em **inglês**; **JSON, rotas e colunas do banco em português** (via `@JsonProperty`/`@Column`). O ator vem sempre do token (`UsuarioAutenticado`/claim `codigoUsuario`), não do corpo. Correlação por `X-Trace-Id`.
+Identificadores do código em **inglês**; **JSON, rotas e colunas do banco em português** (via `@JsonProperty`/`@Column`). O ator vem sempre do token (`AuthenticatedUser`/claim `codigoUsuario`), não do corpo. Correlação por `X-Trace-Id`.
 
 > Parte da arquitetura da Trilha: Cadastro (8080) · **APP (8081)** · loc (8082) · midia (8083) · BFF (8090).
