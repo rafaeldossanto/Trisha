@@ -2,8 +2,7 @@ package com.trisha.app.social;
 
 import com.trisha.app.social.dto.CountersResponse;
 import com.trisha.app.social.dto.FollowStatusResponse;
-import com.trisha.app.user.User;
-import com.trisha.app.user.UserRepository;
+import com.trisha.app.user.UserSearchService;
 import com.trisha.app.user.dto.PublicUserResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ public class FollowerService {
 
     private final FollowerRepository followerRepository;
     private final FriendshipRepository friendshipRepository;
-    private final UserRepository userRepository;
+    private final UserSearchService userSearchService;
 
     @Transactional
     public void follow(String followerId, String followedCode) {
@@ -91,8 +90,7 @@ public class FollowerService {
     }
 
     private String resolveId(String userCode) {
-        return userRepository.findByUserCode(userCode)
-                .map(User::getId)
+        return userSearchService.findIdByCode(userCode)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado"));
     }
 

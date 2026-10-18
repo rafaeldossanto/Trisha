@@ -27,8 +27,8 @@ import java.util.List;
  * pessoal PRIVADA (nao copiados: os pontos GPS vivem no servico de Localizacao
  * chaveados pelo caminho, entao mover a aventura nao os toca) — ou descarta tudo
  * numa cascata manual. O dono nunca sai da propria aventura; quem sai (ou e
- * movido) mantem acesso aos proprios caminhos via
- * AdventureAccessService.canViewPath (dono do caminho sempre ve).
+ * movido) mantem acesso aos proprios caminhos via PathService.canView (dono do
+ * caminho sempre ve).
  */
 @Service
 @RequiredArgsConstructor

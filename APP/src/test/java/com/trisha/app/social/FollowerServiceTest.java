@@ -3,8 +3,7 @@ package com.trisha.app.social;
 import com.trisha.app.social.dto.CountersResponse;
 import com.trisha.app.social.dto.FollowStatusResponse;
 import com.trisha.app.stub.FriendshipStub;
-import com.trisha.app.user.User;
-import com.trisha.app.user.UserRepository;
+import com.trisha.app.user.UserSearchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +18,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,25 +35,17 @@ class FollowerServiceTest {
     @Mock
     private FriendshipRepository friendshipRepository;
     @Mock
-    private UserRepository userRepository;
+    private UserSearchService userSearchService;
 
     @InjectMocks
     private FollowerService service;
-
-    /** Target resolved by userCode (User entity is @Immutable). */
-    private User target() {
-        User user = mock(User.class);
-        when(user.getId()).thenReturn(OTHER_ID);
-        return user;
-    }
 
     // ---- follow ----
 
     @Test
     @DisplayName("follow should persist directional relation without acceptance")
     void shouldFollow() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
         when(friendshipRepository.findRelation(MY_ID, OTHER_ID)).thenReturn(Optional.empty());
         when(followerRepository.existsByFollowerIdAndFollowedId(MY_ID, OTHER_ID)).thenReturn(false);
 
@@ -71,8 +61,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("follow should be idempotent when already following")
     void shouldIgnoreDuplicateFollow() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
         when(friendshipRepository.findRelation(MY_ID, OTHER_ID)).thenReturn(Optional.empty());
         when(followerRepository.existsByFollowerIdAndFollowedId(MY_ID, OTHER_ID)).thenReturn(true);
 
@@ -84,9 +73,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("follow should fail when following yourself")
     void shouldFailSelfFollow() {
-        User me = mock(User.class);
-        when(me.getId()).thenReturn(MY_ID);
-        when(userRepository.findByUserCode("eu#1")).thenReturn(Optional.of(me));
+        when(userSearchService.findIdByCode("eu#1")).thenReturn(Optional.of(MY_ID));
 
         assertThatThrownBy(() -> service.follow(MY_ID, "eu#1"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -98,8 +85,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("follow should fail when there is a block between users")
     void shouldFailFollowBlocked() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
         when(friendshipRepository.findRelation(MY_ID, OTHER_ID))
                 .thenReturn(Optional.of(FriendshipStub.aFriendship().status(FriendshipStatus.BLOQUEADA).build()));
 
@@ -113,7 +99,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("follow should fail when target does not exist")
     void shouldFailFollowUnknownTarget() {
-        when(userRepository.findByUserCode("fantasma#9")).thenReturn(Optional.empty());
+        when(userSearchService.findIdByCode("fantasma#9")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.follow(MY_ID, "fantasma#9"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -125,8 +111,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("unfollow should remove the relation (friendship untouched)")
     void shouldUnfollow() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
 
         service.unfollow(MY_ID, OTHER_CODE);
 
@@ -138,8 +123,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("status should report following, followsMe and mutual")
     void shouldReportStatus() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
         when(followerRepository.existsByFollowerIdAndFollowedId(MY_ID, OTHER_ID)).thenReturn(true);
         when(followerRepository.existsByFollowerIdAndFollowedId(OTHER_ID, MY_ID)).thenReturn(true);
 
@@ -153,8 +137,7 @@ class FollowerServiceTest {
     @Test
     @DisplayName("counters should return followers and following totals")
     void shouldCount() {
-        final User other = target();
-        when(userRepository.findByUserCode(OTHER_CODE)).thenReturn(Optional.of(other));
+        when(userSearchService.findIdByCode(OTHER_CODE)).thenReturn(Optional.of(OTHER_ID));
         when(followerRepository.countByFollowedId(OTHER_ID)).thenReturn(7L);
         when(followerRepository.countByFollowerId(OTHER_ID)).thenReturn(3L);
 

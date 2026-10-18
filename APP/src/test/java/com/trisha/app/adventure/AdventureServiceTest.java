@@ -4,6 +4,7 @@ import com.trisha.app.adventure.dto.AdventureRequest;
 import com.trisha.app.adventure.dto.AdventureResponse;
 import com.trisha.app.region.Region;
 import com.trisha.app.region.RegionRepository;
+import com.trisha.app.social.FollowerService;
 import com.trisha.app.stub.AdventureStub;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,7 +40,7 @@ class AdventureServiceTest {
     @Mock
     private RegionRepository regionRepository;
     @Mock
-    private com.trisha.app.social.FollowerRepository followerRepository;
+    private FollowerService followerService;
     @Mock
     private AdventureAccessService accessService;
     @Mock
@@ -51,7 +53,7 @@ class AdventureServiceTest {
         AdventureMetricsAssembler metricsAssembler =
                 new AdventureMetricsAssembler(participantRepository, pathRepository);
         service = new AdventureService(adventureRepository, participantRepository, regionRepository,
-                followerRepository, accessService, metricsAssembler);
+                followerService, accessService, metricsAssembler);
     }
 
     @Test
@@ -151,5 +153,51 @@ class AdventureServiceTest {
         verify(participantRepository).save(captor.capture());
         assertThat(captor.getValue().getUserId()).isEqualTo("membro-2");
         assertThat(captor.getValue().getAdventure()).isSameAs(personal);
+    }
+
+    @Test
+    @DisplayName("getFeed should list own adventures plus the ones of followed users")
+    void shouldBuildFeedFromFollowedUsers() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(followerService.followingIds(AdventureStub.USER_ID)).thenReturn(List.of("seguido-1"));
+        when(adventureRepository.findFeed(AdventureStub.USER_ID, List.of("seguido-1"), pageable))
+                .thenReturn(new PageImpl<>(List.of(AdventureStub.anAdventure().build())));
+
+        Page<AdventureResponse> response = service.getFeed(AdventureStub.USER_ID, pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getFeed should keep the IN clause valid with a sentinel when following nobody")
+    void shouldBuildFeedWithSentinel() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(followerService.followingIds(AdventureStub.USER_ID)).thenReturn(List.of());
+        when(adventureRepository.findFeed(eq(AdventureStub.USER_ID), eq(List.of("__sem_seguidos__")), eq(pageable)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        assertThat(service.getFeed(AdventureStub.USER_ID, pageable).getContent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("listVisibleInRegion should page the region's adventures visible to the observer")
+    void shouldListVisibleInRegion() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(adventureRepository.findVisibleInRegion(AdventureStub.REGION_ID, "observador-1", pageable))
+                .thenReturn(new PageImpl<>(List.of(AdventureStub.anAdventure().build())));
+
+        Page<AdventureResponse> response = service.listVisibleInRegion(AdventureStub.REGION_ID, "observador-1", pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).regionId()).isEqualTo(AdventureStub.REGION_ID);
+    }
+
+    @Test
+    @DisplayName("unlinkRegion should unlink the region's adventures without deleting them")
+    void shouldUnlinkRegion() {
+        service.unlinkRegion(AdventureStub.REGION_ID);
+
+        verify(adventureRepository).unlinkRegion(AdventureStub.REGION_ID);
+        verify(adventureRepository, never()).delete(any());
     }
 }

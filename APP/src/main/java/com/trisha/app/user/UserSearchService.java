@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -24,6 +25,12 @@ public class UserSearchService {
         User user = userRepository.findByUserCode(userCode)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario nao encontrado"));
         return toPublic(user);
+    }
+
+    /** Id interno a partir do codigo publico; cada caller decide a mensagem de erro. */
+    @Transactional(readOnly = true)
+    public Optional<String> findIdByCode(String userCode) {
+        return userRepository.findByUserCode(userCode).map(User::getId);
     }
 
     @Transactional(readOnly = true)

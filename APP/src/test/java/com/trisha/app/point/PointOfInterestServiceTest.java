@@ -3,6 +3,7 @@ package com.trisha.app.point;
 import com.trisha.app.adventure.AdventureAccessService;
 import com.trisha.app.path.Path;
 import com.trisha.app.path.PathRepository;
+import com.trisha.app.path.PathService;
 import com.trisha.app.point.dto.EvidenceRequest;
 import com.trisha.app.point.dto.EvidenceResponse;
 import com.trisha.app.point.dto.PointOfInterestRequest;
@@ -45,6 +46,8 @@ class PointOfInterestServiceTest {
     private PointOfInterestUserStatusRepository statusRepository;
     @Mock
     private PathRepository pathRepository;
+    @Mock
+    private PathService pathService;
     @Mock
     private AdventureAccessService accessService;
 
@@ -195,7 +198,7 @@ class PointOfInterestServiceTest {
     void shouldListByPath() {
         Pageable pageable = PageRequest.of(0, 10);
         PointOfInterest point = PointOfInterestStub.aPoint().build();
-        when(accessService.canViewPath(PointOfInterestStub.USER_ID, PathStub.ID)).thenReturn(true);
+        when(pathService.canView(PointOfInterestStub.USER_ID, PathStub.ID)).thenReturn(true);
         when(pointRepository.findByPathId(PathStub.ID, pageable))
                 .thenReturn(new PageImpl<>(List.of(point)));
         // batch count: [pointId, total] — 1 validated user for the point
@@ -212,7 +215,7 @@ class PointOfInterestServiceTest {
     @Test
     @DisplayName("getByPath should fail without exposing points when observer lacks access")
     void shouldFailListByPathWithoutAccess() {
-        when(accessService.canViewPath("intruso", PathStub.ID)).thenReturn(false);
+        when(pathService.canView("intruso", PathStub.ID)).thenReturn(false);
 
         assertThatThrownBy(() -> service.getByPath("intruso", PathStub.ID, PageRequest.of(0, 10)))
                 .isInstanceOf(IllegalArgumentException.class)

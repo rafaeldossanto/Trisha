@@ -1,17 +1,16 @@
 package com.trisha.app.region;
 
-import com.trisha.app.adventure.AdventureMetricsAssembler;
-import com.trisha.app.adventure.AdventureRepository;
+import com.trisha.app.adventure.AdventureService;
+import com.trisha.app.adventure.dto.AdventureResponse;
 import com.trisha.app.region.dto.RegionRequest;
 import com.trisha.app.region.dto.RegionResponse;
-import com.trisha.app.social.FriendshipRepository;
-import com.trisha.app.social.FriendshipStatus;
+import com.trisha.app.social.FriendshipService;
 import com.trisha.app.stub.AdventureStub;
-import com.trisha.app.stub.FriendshipStub;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,11 +42,9 @@ class RegionServiceTest {
     @Mock
     private RegionRepository regionRepository;
     @Mock
-    private FriendshipRepository friendshipRepository;
+    private FriendshipService friendshipService;
     @Mock
-    private AdventureRepository adventureRepository;
-    @Mock
-    private AdventureMetricsAssembler adventureMetricsAssembler;
+    private AdventureService adventureService;
 
     @InjectMocks
     private RegionService service;
@@ -113,8 +111,7 @@ class RegionServiceTest {
     @DisplayName("getById: AMIGOS folder visible to accepted friends only")
     void friendsFolderForFriends() {
         when(regionRepository.findById(REGION_ID)).thenReturn(Optional.of(region(RegionVisibility.AMIGOS)));
-        when(friendshipRepository.findRelation(OBSERVER, OWNER))
-                .thenReturn(Optional.of(FriendshipStub.aFriendship().status(FriendshipStatus.ACEITA).build()));
+        when(friendshipService.areFriends(OBSERVER, OWNER)).thenReturn(true);
 
         assertThat(service.getById(OBSERVER, REGION_ID).id()).isEqualTo(REGION_ID);
     }
@@ -123,7 +120,7 @@ class RegionServiceTest {
     @DisplayName("getById: AMIGOS folder hidden without accepted friendship")
     void friendsFolderHiddenFromStrangers() {
         when(regionRepository.findById(REGION_ID)).thenReturn(Optional.of(region(RegionVisibility.AMIGOS)));
-        when(friendshipRepository.findRelation(OBSERVER, OWNER)).thenReturn(Optional.empty());
+        when(friendshipService.areFriends(OBSERVER, OWNER)).thenReturn(false);
 
         assertThatThrownBy(() -> service.getById(OBSERVER, REGION_ID))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -162,8 +159,9 @@ class RegionServiceTest {
 
         service.delete(OWNER, REGION_ID);
 
-        verify(adventureRepository).unlinkRegion(REGION_ID);
-        verify(regionRepository).delete(region);
+        InOrder order = inOrder(adventureService, regionRepository);
+        order.verify(adventureService).unlinkRegion(REGION_ID);
+        order.verify(regionRepository).delete(region);
     }
 
     // ---- discover / getAdventures ----
@@ -171,7 +169,7 @@ class RegionServiceTest {
     @Test
     @DisplayName("discover should use sentinel when the user has no friends")
     void shouldDiscoverWithSentinel() {
-        when(friendshipRepository.findFriendIds(OBSERVER, FriendshipStatus.ACEITA)).thenReturn(List.of());
+        when(friendshipService.friendIds(OBSERVER)).thenReturn(List.of());
         when(regionRepository.findDiscoverable(eq(OBSERVER), eq(List.of("__sem_amigos__")), eq(pageable)))
                 .thenReturn(new PageImpl<>(List.of(region(RegionVisibility.PUBLICA))));
 
@@ -189,6 +187,16 @@ class RegionServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("nao encontrada ou sem acesso");
 
-        verify(adventureRepository, never()).findVisibleInRegion(any(), any(), any());
+        verify(adventureService, never()).listVisibleInRegion(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("getAdventures should list the adventures visible to the observer once access is granted")
+    void shouldListAdventuresWithAccess() {
+        Page<AdventureResponse> page = new PageImpl<>(List.of(AdventureResponse.builder().id(AdventureStub.ID).build()));
+        when(regionRepository.findById(REGION_ID)).thenReturn(Optional.of(region(RegionVisibility.PUBLICA)));
+        when(adventureService.listVisibleInRegion(REGION_ID, OBSERVER, pageable)).thenReturn(page);
+
+        assertThat(service.getAdventures(OBSERVER, REGION_ID, pageable)).isSameAs(page);
     }
 }

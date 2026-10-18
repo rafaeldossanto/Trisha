@@ -88,9 +88,12 @@ public class PathService {
         return page.map(PathMapper::toResponse);
     }
 
+    /** O dono do caminho sempre ve; os demais seguem a visibilidade da aventura. */
     @Transactional(readOnly = true)
     public boolean canView(String observerId, String pathId) {
-        return accessService.canViewPath(observerId, pathId);
+        return pathRepository.findById(pathId)
+                .map(path -> path.getUserId().equals(observerId) || accessService.canView(observerId, path.getAdventure()))
+                .orElse(false);
     }
 
     /**

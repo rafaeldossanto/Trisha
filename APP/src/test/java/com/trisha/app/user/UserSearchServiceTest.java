@@ -92,4 +92,24 @@ class UserSearchServiceTest {
         assertThat(response).hasSize(2);
         assertThat(response.get(0).userCode()).isEqualTo("rafael#1");
     }
+
+    // ---- findIdByCode (resolucao usada pela area social) ----
+
+    @Test
+    @DisplayName("findIdByCode should return the internal id of the user")
+    void shouldFindIdByCode() {
+        User user = user("rafa#1", "Rafael");
+        ReflectionTestUtils.setField(user, "id", "usuario-1");
+        when(userRepository.findByUserCode("rafa#1")).thenReturn(Optional.of(user));
+
+        assertThat(service.findIdByCode("rafa#1")).contains("usuario-1");
+    }
+
+    @Test
+    @DisplayName("findIdByCode should be empty for an unknown code, leaving the message to the caller")
+    void shouldFindNoIdForUnknownCode() {
+        when(userRepository.findByUserCode("fantasma#9")).thenReturn(Optional.empty());
+
+        assertThat(service.findIdByCode("fantasma#9")).isEmpty();
+    }
 }

@@ -3,8 +3,7 @@ package com.trisha.app.social;
 import com.trisha.app.social.dto.FriendshipRequest;
 import com.trisha.app.social.dto.FriendshipResponse;
 import com.trisha.app.stub.FriendshipStub;
-import com.trisha.app.user.User;
-import com.trisha.app.user.UserRepository;
+import com.trisha.app.user.UserSearchService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +21,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -34,7 +32,7 @@ class FriendshipServiceTest {
     @Mock
     private FriendshipRepository friendshipRepository;
     @Mock
-    private UserRepository userRepository;
+    private UserSearchService userSearchService;
     @Mock
     private FollowerRepository followerRepository;
 
@@ -43,21 +41,13 @@ class FriendshipServiceTest {
 
     private final Pageable pageable = PageRequest.of(0, 10);
 
-    /** Receiver resolved by userCode (User entity is @Immutable). */
-    private User receiver() {
-        User user = mock(User.class);
-        when(user.getId()).thenReturn(FriendshipStub.RECEIVER_ID);
-        return user;
-    }
-
     // ---- request ----
 
     @Test
     @DisplayName("request should create pending friendship with the token requester")
     void shouldRequestFriendship() {
         FriendshipRequest request = FriendshipStub.aRequest();
-        final User receiver = receiver();
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(receiver));
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(FriendshipStub.RECEIVER_ID));
         when(friendshipRepository.findRelation(FriendshipStub.REQUESTER_ID, FriendshipStub.RECEIVER_ID)).thenReturn(Optional.empty());
         when(friendshipRepository.save(any(Friendship.class))).thenAnswer(inv -> inv.getArgument(0));
         when(followerRepository.existsByFollowerIdAndFollowedId(any(), any())).thenReturn(true);
@@ -73,7 +63,7 @@ class FriendshipServiceTest {
     @Test
     @DisplayName("request should fail when receiver does not exist")
     void shouldFailReceiverNotFound() {
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.empty());
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.request(FriendshipStub.REQUESTER_ID, FriendshipStub.aRequest()))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -85,8 +75,7 @@ class FriendshipServiceTest {
     @Test
     @DisplayName("request should fail when relation already exists")
     void shouldFailDuplicateRelation() {
-        final User receiver = receiver();
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(receiver));
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(FriendshipStub.RECEIVER_ID));
         when(followerRepository.existsByFollowerIdAndFollowedId(any(), any())).thenReturn(true);
         when(friendshipRepository.findRelation(FriendshipStub.REQUESTER_ID, FriendshipStub.RECEIVER_ID))
                 .thenReturn(Optional.of(FriendshipStub.aFriendship().build()));
@@ -211,8 +200,7 @@ class FriendshipServiceTest {
     @DisplayName("block should mark existing relation as BLOQUEADA and record who blocked")
     void shouldBlockExistingRelation() {
         Friendship friendship = FriendshipStub.aFriendship().status(FriendshipStatus.ACEITA).build();
-        final User receiver = receiver();
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(receiver));
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(FriendshipStub.RECEIVER_ID));
         when(friendshipRepository.findRelation(FriendshipStub.REQUESTER_ID, FriendshipStub.RECEIVER_ID)).thenReturn(Optional.of(friendship));
         when(friendshipRepository.save(any(Friendship.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -228,8 +216,7 @@ class FriendshipServiceTest {
     @Test
     @DisplayName("block should create BLOQUEADA relation when there was no prior relation")
     void shouldBlockWithoutPriorRelation() {
-        final User receiver = receiver();
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(receiver));
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.of(FriendshipStub.RECEIVER_ID));
         when(friendshipRepository.findRelation(FriendshipStub.REQUESTER_ID, FriendshipStub.RECEIVER_ID)).thenReturn(Optional.empty());
         when(friendshipRepository.save(any(Friendship.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -242,7 +229,7 @@ class FriendshipServiceTest {
     @Test
     @DisplayName("block should fail when target does not exist")
     void shouldFailBlockTargetNotFound() {
-        when(userRepository.findByUserCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.empty());
+        when(userSearchService.findIdByCode(FriendshipStub.RECEIVER_CODE)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.block(FriendshipStub.REQUESTER_ID, FriendshipStub.aRequest()))
                 .isInstanceOf(IllegalArgumentException.class)

@@ -1,13 +1,11 @@
 package com.trisha.app.region;
 
-import com.trisha.app.adventure.AdventureMetricsAssembler;
-import com.trisha.app.adventure.AdventureRepository;
+import com.trisha.app.adventure.AdventureService;
 import com.trisha.app.adventure.dto.AdventureResponse;
 import com.trisha.app.region.dto.RegionRequest;
 import com.trisha.app.region.dto.RegionResponse;
 import com.trisha.app.shared.util.OwnershipValidator;
-import com.trisha.app.social.FriendshipRepository;
-import com.trisha.app.social.FriendshipStatus;
+import com.trisha.app.social.FriendshipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -23,9 +21,8 @@ import java.util.List;
 public class RegionService {
 
     private final RegionRepository regionRepository;
-    private final FriendshipRepository friendshipRepository;
-    private final AdventureRepository adventureRepository;
-    private final AdventureMetricsAssembler adventureMetricsAssembler;
+    private final FriendshipService friendshipService;
+    private final AdventureService adventureService;
 
     @Transactional
     public RegionResponse create(String userId, RegionRequest request) {
@@ -55,14 +52,14 @@ public class RegionService {
     @Transactional
     public void delete(String userId, String id) {
         Region region = findOwner(id, userId);
-        adventureRepository.unlinkRegion(id);
+        adventureService.unlinkRegion(id);
         regionRepository.delete(region);
         log.info("Region {} deleted; adventures unlinked", id);
     }
 
     @Transactional(readOnly = true)
     public Page<RegionResponse> discover(String userId, Pageable pageable) {
-        List<String> friends = friendshipRepository.findFriendIds(userId, FriendshipStatus.ACEITA);
+        List<String> friends = friendshipService.friendIds(userId);
         List<String> filter = friends.isEmpty() ? List.of("__sem_amigos__") : friends;
         return regionRepository.findDiscoverable(userId, filter, pageable).map(RegionMapper::toResponse);
     }
@@ -71,7 +68,7 @@ public class RegionService {
     public Page<AdventureResponse> getAdventures(String userId, String regionId, Pageable pageable) {
         Region region = find(regionId);
         validateAccess(region, userId);
-        return adventureMetricsAssembler.buildPage(adventureRepository.findVisibleInRegion(regionId, userId, pageable));
+        return adventureService.listVisibleInRegion(regionId, userId, pageable);
     }
 
     private void validateAccess(Region region, String userId) {
@@ -80,9 +77,7 @@ public class RegionService {
         }
         boolean allowed = switch (region.getVisibility()) {
             case PUBLICA -> true;
-            case AMIGOS -> friendshipRepository.findRelation(userId, region.getUserId())
-                    .filter(f -> FriendshipStatus.ACEITA.equals(f.getStatus()))
-                    .isPresent();
+            case AMIGOS -> friendshipService.areFriends(userId, region.getUserId());
             case PRIVADA -> false;
         };
         if (!allowed) {

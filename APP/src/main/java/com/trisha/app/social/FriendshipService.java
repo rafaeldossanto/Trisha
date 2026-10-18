@@ -3,8 +3,7 @@ package com.trisha.app.social;
 import com.trisha.app.shared.exception.ForbiddenException;
 import com.trisha.app.social.dto.FriendshipRequest;
 import com.trisha.app.social.dto.FriendshipResponse;
-import com.trisha.app.user.User;
-import com.trisha.app.user.UserRepository;
+import com.trisha.app.user.UserSearchService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,7 +23,7 @@ import static com.trisha.app.social.FriendshipMapper.toResponse;
 public class FriendshipService {
 
     private final FriendshipRepository friendshipRepository;
-    private final UserRepository userRepository;
+    private final UserSearchService userSearchService;
     private final FollowerRepository followerRepository;
 
     public FriendshipResponse request(String requesterId, FriendshipRequest request) {
@@ -158,8 +157,7 @@ public class FriendshipService {
     }
 
     private String resolveReceiver(String userCode) {
-        return userRepository.findByUserCode(userCode)
-                .map(User::getId)
+        return userSearchService.findIdByCode(userCode)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario receptor nao encontrado"));
     }
 

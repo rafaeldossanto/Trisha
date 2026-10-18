@@ -3,6 +3,7 @@ package com.trisha.app.path;
 import com.trisha.app.adventure.Adventure;
 import com.trisha.app.adventure.AdventureAccessService;
 import com.trisha.app.adventure.AdventureRepository;
+import com.trisha.app.adventure.AdventureVisibility;
 import com.trisha.app.path.dto.PathDiscoveryResponse;
 import com.trisha.app.path.dto.PathRequest;
 import com.trisha.app.path.dto.PathResponse;
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -212,5 +214,41 @@ class PathServiceTest {
 
         assertThat(deleted).isEqualTo(1);
         verify(pathRepository).deleteAll(List.of(path));
+    }
+
+    // ---- canView (quem pode ver um caminho) ----
+
+    @Test
+    @DisplayName("canView delegates to the visibility of the path's adventure")
+    void canViewDelegatesToAdventure() {
+        Path path = PathStub.aPath()
+                .adventure(AdventureStub.anAdventure().visibility(AdventureVisibility.PUBLICA).build())
+                .build();
+        when(pathRepository.findById(PathStub.ID)).thenReturn(Optional.of(path));
+        when(accessService.canView("observador-1", path.getAdventure())).thenReturn(true);
+
+        assertThat(service.canView("observador-1", PathStub.ID)).isTrue();
+    }
+
+    @Test
+    @DisplayName("canView: the path's own owner always sees it, even in a PRIVADA adventure of someone else")
+    void canViewOwnerAlwaysSees() {
+        Path path = PathStub.aPath()
+                .userId("observador-1")
+                .adventure(AdventureStub.anAdventure().visibility(AdventureVisibility.PRIVADA).build())
+                .build();
+        when(pathRepository.findById(PathStub.ID)).thenReturn(Optional.of(path));
+
+        // O dono do caminho mantem acesso mesmo apos sair para uma aventura pessoal PRIVADA.
+        assertThat(service.canView("observador-1", PathStub.ID)).isTrue();
+        verifyNoInteractions(accessService);
+    }
+
+    @Test
+    @DisplayName("canView is false for unknown path (does not leak existence)")
+    void canViewUnknown() {
+        when(pathRepository.findById("inexistente")).thenReturn(Optional.empty());
+
+        assertThat(service.canView("observador-1", "inexistente")).isFalse();
     }
 }

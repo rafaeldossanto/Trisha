@@ -5,7 +5,7 @@ import com.trisha.app.adventure.dto.AdventureResponse;
 import com.trisha.app.region.Region;
 import com.trisha.app.region.RegionRepository;
 import com.trisha.app.shared.util.OwnershipValidator;
-import com.trisha.app.social.FollowerRepository;
+import com.trisha.app.social.FollowerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -25,7 +25,7 @@ public class AdventureService {
     private final AdventureRepository adventureRepository;
     private final AdventureParticipantRepository participantRepository;
     private final RegionRepository regionRepository;
-    private final FollowerRepository followerRepository;
+    private final FollowerService followerService;
     private final AdventureAccessService accessService;
     private final AdventureMetricsAssembler metricsAssembler;
 
@@ -97,9 +97,24 @@ public class AdventureService {
      */
     @Transactional(readOnly = true)
     public Page<AdventureResponse> getFeed(String observerId, Pageable pageable) {
-        List<String> authors = followerRepository.findFollowedIds(observerId);
+        List<String> authors = followerService.followingIds(observerId);
         List<String> filter = authors.isEmpty() ? List.of("__sem_seguidos__") : authors;
         return metricsAssembler.buildPage(adventureRepository.findFeed(observerId, filter, pageable));
+    }
+
+    /**
+     * Aventuras de uma colecao visiveis ao observador. Quem chama ja validou o
+     * acesso a colecao (RegionService.getAdventures).
+     */
+    @Transactional(readOnly = true)
+    public Page<AdventureResponse> listVisibleInRegion(String regionId, String observerId, Pageable pageable) {
+        return metricsAssembler.buildPage(adventureRepository.findVisibleInRegion(regionId, observerId, pageable));
+    }
+
+    /** Ao excluir uma colecao, as aventuras dela nao sao excluidas: so desvinculadas. */
+    @Transactional
+    public void unlinkRegion(String regionId) {
+        adventureRepository.unlinkRegion(regionId);
     }
 
     public AdventureResponse updateStatus(String userId, String id, AdventureStatus status) {

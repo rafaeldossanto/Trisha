@@ -1,10 +1,7 @@
 package com.trisha.app.adventure;
 
-import com.trisha.app.path.Path;
-import com.trisha.app.path.PathRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Regra unica de leitura por visibilidade da aventura, usada por todas as
@@ -17,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdventureAccessService {
 
     private final AdventureParticipantRepository participantRepository;
-    private final PathRepository pathRepository;
 
     public boolean canView(String observerId, Adventure adventure) {
         if (adventure.getUserId().equals(observerId)) {
@@ -34,13 +30,6 @@ public class AdventureAccessService {
         if (!canView(observerId, adventure)) {
             throw new IllegalArgumentException("Aventura nao encontrada ou sem acesso");
         }
-    }
-
-    @Transactional(readOnly = true)
-    public boolean canViewPath(String observerId, String pathId) {
-        return pathRepository.findById(pathId)
-                .map(path -> path.getUserId().equals(observerId) || canView(observerId, path.getAdventure()))
-                .orElse(false);
     }
 
     public boolean canContribute(String userId, Adventure adventure) {

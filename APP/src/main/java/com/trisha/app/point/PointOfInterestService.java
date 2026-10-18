@@ -3,6 +3,7 @@ package com.trisha.app.point;
 import com.trisha.app.adventure.AdventureAccessService;
 import com.trisha.app.path.Path;
 import com.trisha.app.path.PathRepository;
+import com.trisha.app.path.PathService;
 import com.trisha.app.point.dto.EvidenceRequest;
 import com.trisha.app.point.dto.EvidenceResponse;
 import com.trisha.app.point.dto.PointOfInterestRequest;
@@ -30,6 +31,7 @@ public class PointOfInterestService {
     private final EvidenceRepository evidenceRepository;
     private final PointOfInterestUserStatusRepository statusRepository;
     private final PathRepository pathRepository;
+    private final PathService pathService;
     private final AdventureAccessService accessService;
 
     private static final double MAX_DISTANCE_METERS = 50.0;
@@ -82,7 +84,7 @@ public class PointOfInterestService {
 
     @Transactional(readOnly = true)
     public Page<PointOfInterestResponse> getByPath(String observerId, String pathId, Pageable pageable) {
-        if (!accessService.canViewPath(observerId, pathId)) {
+        if (!pathService.canView(observerId, pathId)) {
             throw new IllegalArgumentException("Caminho nao encontrado ou sem acesso");
         }
         Page<PointOfInterest> page = pointRepository.findByPathId(pathId, pageable);
